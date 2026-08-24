@@ -1,0 +1,1845 @@
+合并时间: 2026-08-24 13:50:32.424936
+源文件夹: D:/android-mac-editor-Rillwyn
+文件总数: 34
+================================================================================
+
+文件路径: .github\workflows\apk.yml
+完整路径: D:/android-mac-editor-Rillwyn\.github\workflows\apk.yml
+==================== 文件内容开始 ====================
+name: Build and Release APK
+
+env:
+  main_project_module: app
+  # ========== 修改区域 START ==========
+  # 改成你的 Xposed 官方仓库地址
+  target_owner: Xposed-Modules-Repo
+  target_repo: io.github.Rillwyn.maceditor   # 改成你的包名（即仓库名）
+  # ========== 修改区域 END ==========
+
+on:
+  push:
+    branches:
+      - "release/**"                # 推送 release/* 分支时触发
+    tags:
+      - "v*.*.*"                    # 推送 v1.0.0 格式的标签时触发
+  workflow_dispatch:                # 允许手动触发
+    inputs:
+      version:
+        description: "版本号 (例如: 1.0.0)"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置版本号
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "version=$(echo '${{ github.ref_name }}' | sed 's/^v//')" >> $GITHUB_ENV
+          else
+            echo "version=${{ inputs.version }}" >> $GITHUB_ENV
+          fi
+          echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+          echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+
+      - name: 安装 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "21"
+          cache: "gradle"
+
+      - name: 配置签名（从 Secrets 读取）
+        run: |
+          echo ${{ secrets.STORE }} | base64 -d > upload.jks
+          echo ${{ secrets.LOCAL }} | base64 -d > local.properties
+          chmod +x ./gradlew
+
+      - name: 编译 Release APK 和 AAB
+        run: |
+          ./gradlew assembleRelease bundleRelease --stacktrace
+          rm upload.jks local.properties
+
+      # ========== 发布到你的 GitHub Releases（你的个人仓库） ==========
+      - name: 发布到 GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: v${{ env.version }}
+          tag_name: v${{ env.version }}
+          files: |
+            ${{ env.main_project_module }}/build/outputs/apk/release/app-release.apk
+            ${{ env.main_project_module }}/build/outputs/bundle/release/app-release.aab
+
+      # ========== 发布到 Xposed 官方仓库 ==========
+      - name: 发布到 Xposed 官方仓库
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.PAT }}           # 需要你创建 Personal Access Token
+          repository: ${{ env.target_owner }}/${{ env.target_repo }}
+          name: v${{ env.version }}
+          tag_name: v${{ env.version }}
+          files: |
+            ${{ env.main_project_module }}/build/outputs/apk/release/app-release.apk
+
+      # ========== 同步 README 到 Xposed 官方仓库 ==========
+      - name: 同步 README 到 Xposed 官方仓库
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.target_owner }}/${{ env.target_repo }}
+          path: target_repo
+          token: ${{ secrets.PAT }}
+
+      - name: 同步文件
+        run: |
+          cd target_repo
+          cp ../README.md ../README_CN.md ../CHANGELOG.md ../CHANGELOG_CN.md . 2>/dev/null || true
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add README.md README_CN.md CHANGELOG.md CHANGELOG_CN.md 2>/dev/null || true
+          git commit --amend --no-edit 2>/dev/null || git commit -m "Sync README from source repo"
+          git push --force
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: CHANGELOG.md
+完整路径: D:/android-mac-editor-Rillwyn\CHANGELOG.md
+==================== 文件内容开始 ====================
+# Changelog
+
+This file documents all modifications made to the original [MAC Editor](https://github.com/jqssun/android-mac-editor) project by [jqssun](https://github.com/jqssun).
+
+All changes are made under the terms of the original license (GPL-3.0), and all original copyright notices are retained.
+
+---
+
+## [0.0.8] - 2026-08-24
+
+### Added
+- **Multi‑language UI**: Support for English and Chinese, switchable via the app menu. The UI refreshes instantly after selection.
+- **AP MAC override toggle**: A dedicated switch to control whether the custom MAC address is applied to the mobile hotspot (AP) interface. **Default is OFF**, preventing hotspot startup failures on devices that reject MAC changes on `wlan2`.
+
+### Changed
+- **Hotspot compatibility fix**: Replaced method‑based detection with interface‑name‑based detection (`wlan2`) to accurately identify AP calls, ensuring the AP override switch works reliably.
+- **Language storage optimization**: Language preference is now stored in local `SharedPreferences` instead of remote Xposed prefs, fixing the previous issue where language switching had no effect.
+
+### Technical Details
+- Modified `WifiServiceHooker.kt`: Uses `ifaceName` to determine if the call targets AP mode; checks `apMacOverride` preference before replacing MAC.
+- Modified `MainActivity.kt`: Reads language setting in `attachBaseContext` from local prefs, uses `recreate()` to refresh UI.
+- Added `values-zh/strings.xml` for Chinese strings.
+- Updated `activity_main.xml`: Added AP MAC override card.
+- Bumped version to `0.0.8` in `app/build.gradle.kts`.
+
+### Documentation
+- Updated `README.md` and added `README_CN.md` to describe new features and usage.
+- Created `CHANGELOG.md` and `CHANGELOG_CN.md` to record all modifications.
+
+---
+
+## Original Releases (upstream)
+
+The original project was based on [David Berdik](https://f-droid.org/repo/com.berdik.macsposed_6_src.tar.gz)'s `MacSposed` implementation, later improved and open‑sourced by [jqssun](https://github.com/jqssun).
+
+Original features included:
+- Hooking `setStaMacAddress` and `setApMacAddress`.
+- Forcing MAC randomization resources.
+- Basic UI for setting a custom MAC address.
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: CHANGELOG_CN.md
+完整路径: D:/android-mac-editor-Rillwyn\CHANGELOG_CN.md
+==================== 文件内容开始 ====================
+# 修改记录（中文版）
+
+本文件记录了基于 [MAC Editor](https://github.com/jqssun/android-mac-editor) 原项目（作者 [jqssun](https://github.com/jqssun)）所做的所有修改。
+
+所有修改均遵循原项目许可证（GPL-3.0），并保留了原始版权声明。
+
+---
+
+## [0.0.8] - 2026-08-24
+
+### 新增功能
+- **多语言界面**：支持英文和中文，通过应用菜单切换，界面即时刷新。
+- **AP MAC 覆写开关**：新增独立开关，控制是否对移动热点（AP）接口应用自定义 MAC 地址。默认**关闭**，避免部分设备因修改热点 MAC 导致热点启动失败。
+
+### 改进
+- **热点兼容性修复**：改用接口名称（`wlan2`）而非方法比较来识别 AP 调用，确保 AP 覆写开关准确生效。
+- **语言存储优化**：将语言偏好存储在本地 `SharedPreferences`，与模块远程配置分离，解决了之前切换无效的问题。
+
+### 技术细节
+- 修改 `WifiServiceHooker.kt`：通过 `ifaceName` 判断是否为 AP 接口，依据 `apMacOverride` 开关决定是否替换 MAC。
+- 修改 `MainActivity.kt`：在 `attachBaseContext` 中从本地偏好读取语言，使用 `recreate()` 刷新界面。
+- 新增 `values-zh/strings.xml` 中文资源文件。
+- 更新 `activity_main.xml`：添加 AP MAC 覆写卡片。
+- 版本号升级至 `0.0.8`（`app/build.gradle.kts` 中 `versionName`）。
+
+### 文档
+- 更新 `README.md` 和新增 `README_CN.md`，说明新功能和用法。
+- 创建 `CHANGELOG.md` 和 `CHANGELOG_CN.md` 记录所有修改。
+
+---
+
+## 原始版本（上游）
+
+初始版本基于 [David Berdik](https://f-droid.org/repo/com.berdik.macsposed_6_src.tar.gz) 的 `MacSposed` 实现，由 [jqssun](https://github.com/jqssun) 完善并开源。
+
+原始功能包括：
+- 钩子 `setStaMacAddress` 和 `setApMacAddress`。
+- 强制 MAC 随机化资源覆写。
+- 基本 UI 设置 MAC 地址。
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: README.md
+完整路径: D:/android-mac-editor-Rillwyn\README.md
+==================== 文件内容开始 ====================
+# MAC Editor for Android (Fork)
+
+[![Stars](https://img.shields.io/github/stars/Xposed-Modules-Repo/io.github.Rillwyn.maceditor)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/stargazers)
+[![LSPosed](https://img.shields.io/github/downloads/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/total?label=LSPosed&logo=Android&style=flat&labelColor=F48FB1&logoColor=ffffff)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
+[![GitHub](https://img.shields.io/github/downloads/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/total?label=GitHub&logo=GitHub)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
+[![release](https://img.shields.io/github/v/release/Xposed-Modules-Repo/io.github.Rillwyn.maceditor)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
+[![build](https://img.shields.io/github/actions/workflow/status/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/apk.yml)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/actions/workflows/apk.yml)
+[![license](https://img.shields.io/github/license/Xposed-Modules-Repo/io.github.Rillwyn.maceditor?color=green)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/blob/master/LICENSE)
+
+> **Note**: This is a modified fork of the original [MAC Editor](https://github.com/jqssun/android-mac-editor) by [jqssun](https://github.com/jqssun). All credits go to the original author. This version adds several enhancements (see below).
+
+**MAC Editor** is a free and open-source Xposed module that gives you granular control over the Wi-Fi MAC address on Android devices. It supports manual MAC override and enables native MAC randomization support exposed by Android on supported hardware regardless of the OEM's implementation.
+
+You can use it to:
+- Customize MAC behavior for privacy.
+- Override the randomized MAC with a fixed value.
+- Force-enable MAC randomization on devices where the vendor disabled it.
+- **Optionally control whether the mobile hotspot (AP) interface uses the custom MAC** – disable this if your device fails to start hotspot when MAC is overridden.
+
+## Features
+
+- **Manual MAC override** – set any valid unicast MAC address (first octet even).
+- **Force MAC randomization** – enable hidden randomization support for standard Wi-Fi, Wi‑Fi Direct, and mobile hotspot.
+- **Per‑network or per‑connection control** – works when “Use randomized MAC” is selected in Wi‑Fi network details.
+- **AP MAC override toggle** – independently enable/disable MAC replacement for the hotspot interface (default: **off**). Helps devices where changing AP MAC breaks hotspot functionality.
+- **Multi‑language UI** – supports English and Chinese, switchable via the app menu.
+
+## Compatibility
+
+- Android 12+ (tested up to Android 16 QPR2)
+- Rooted devices with **LSPosed** framework installed
+
+## Implementation Details
+
+On modern Android, the Wi-Fi subsystem (via `WifiNative`) can randomize MAC addresses per network or per connection. This module hooks the following system server methods to allow manual MAC assignment when randomization is enabled:
+
+- `WifiVendorHal.setStaMacAddress()` – for station (client) Wi‑Fi.
+- `WifiVendorHal.setApMacAddress()` – for access point (hotspot) mode.
+
+The module also forces the system to believe that MAC randomization is supported by overriding the following resource booleans:
+- `config_wifi_connected_mac_randomization_supported`
+- `config_wifi_p2p_mac_randomization_supported`
+- `config_wifi_ap_mac_randomization_supported`
+
+This is useful on devices where the hardware and chipset drivers do support MAC randomization, but the vendor did not enable it in software.
+
+### AP MAC Override Switch
+
+Some devices fail to start the mobile hotspot when the MAC address is modified (error logs show `Could not set interface MAC address for wlan2`). To avoid this, the module provides a dedicated switch in the UI to **disable MAC override for AP mode** (default: off). When this switch is **off**, the module will not intercept calls to `setApMacAddress`, letting the system use the default random MAC for the hotspot.
+
+If you need a custom MAC for hotspot as well, simply turn this switch **on**.
+
+## Usage
+
+1. Install the module and activate it in LSPosed (scope: **System Framework**).
+2. Reboot your device.
+3. Open the **MAC Editor** app.
+4. Enable **“Override randomized MAC”** if you want to replace the randomized MAC with a custom one.
+5. Enter a valid MAC address (e.g., `02:00:00:00:00:01`) or tap **“Generate Random MAC”**.
+6. Tap **“Apply MAC Address”**.
+7. For Wi‑Fi connections, ensure **“Use randomized MAC”** is selected in the network’s “Privacy” setting.
+8. To use the custom MAC for hotspot, enable **“Override AP MAC address”** (recommended to keep it off if hotspot fails to start).
+9. Reconnect Wi‑Fi or restart hotspot to apply changes.
+
+## Language Switching
+
+The app supports English and Chinese. To switch:
+- Tap the three-dot menu in the top‑right corner.
+- Select **“Language”** and choose your preferred language.
+- The UI will refresh immediately.
+
+## Notes for Qualcomm Devices
+
+Hardware support on certain chipsets can be checked by looking at:
+- `/vendor/etc/wifi/kiwi_v2/WCNSS_qcom_cfg.ini`
+- `/vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini`
+
+For legacy Qualcomm devices without MAC randomization support, consider editing `wlan_mac.bin` or `/sys/wifi/mac_addr` directly instead of using this module.
+
+## Acknowledgements
+
+This project is a fork of the original [MAC Editor](https://github.com/jqssun/android-mac-editor) by [jqssun](https://github.com/jqssun).  
+The initial open‑source system server hook implementation was provided by [David Berdik](https://f-droid.org/repo/com.berdik.macsposed_6_src.tar.gz).  
+We thank the original authors for their great work.
+
+## AI Assistance
+
+This project was developed with the assistance of AI tools.
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE). All original copyright notices are retained.
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: README_CN.md
+完整路径: D:/android-mac-editor-Rillwyn\README_CN.md
+==================== 文件内容开始 ====================
+# MAC Editor for Android（修改版）
+
+[![Stars](https://img.shields.io/github/stars/Xposed-Modules-Repo/io.github.Rillwyn.maceditor)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/stargazers)
+[![LSPosed](https://img.shields.io/github/downloads/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/total?label=LSPosed&logo=Android&style=flat&labelColor=F48FB1&logoColor=ffffff)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
+[![GitHub](https://img.shields.io/github/downloads/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/total?label=GitHub&logo=GitHub)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
+[![release](https://img.shields.io/github/v/release/Xposed-Modules-Repo/io.github.Rillwyn.maceditor)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
+[![build](https://img.shields.io/github/actions/workflow/status/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/apk.yml)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/actions/workflows/apk.yml)
+[![license](https://img.shields.io/github/license/Xposed-Modules-Repo/io.github.Rillwyn.maceditor?color=green)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/blob/master/LICENSE)
+
+> **注意**：本项目是基于 [MAC Editor](https://github.com/jqssun/android-mac-editor) 原项目（作者 [jqssun](https://github.com/jqssun)）的修改版。所有原始版权归原作者所有。此版本增加了若干增强功能（详见下文）。
+
+**MAC Editor** 是一款免费开源的 Xposed 模块，让您精细控制 Android 设备的 Wi-Fi MAC 地址。它支持手动覆写 MAC，并能强制开启 Android 原生 MAC 随机化功能（只要硬件支持，无需 OEM 额外实现）。
+
+您可以用它来：
+- 自定义 MAC 地址以增强隐私保护。
+- 将随机 MAC 固定为您指定的值。
+- 在厂商禁用 MAC 随机化的设备上强制开启该功能。
+- **独立控制移动热点（AP）接口是否使用自定义 MAC** – 如果您的设备在修改热点 MAC 后无法开启热点，可关闭此开关（默认关闭）。
+
+## 功能特性
+
+- **手动覆写 MAC** – 设置任意有效的单播 MAC 地址（首字节必须为偶数）。
+- **强制 MAC 随机化** – 对标准 Wi-Fi、Wi‑Fi Direct 和移动热点启用隐藏的随机化支持。
+- **按网络/按连接控制** – 在 Wi‑Fi 网络详情中勾选“使用随机 MAC”后生效。
+- **AP MAC 覆写开关** – 独立开启/关闭对热点接口（`wlan2`）的 MAC 替换（默认 **关闭**）。可解决部分设备因修改热点 MAC 导致热点无法启动的问题。
+- **多语言界面** – 支持英文和中文，可在应用菜单中随时切换。
+
+## 兼容性
+
+- Android 12+（已测试至 Android 16 QPR2）
+- 已 Root 设备，并安装 **LSPosed** 框架
+
+## 实现原理
+
+在较新 Android 版本中，Wi-Fi 子系统（通过 `WifiNative`）支持按网络或按连接随机化 MAC 地址。本模块钩住系统服务的以下方法，在随机化启用时手动指定 MAC：
+
+- `WifiVendorHal.setStaMacAddress()` – 用于 Wi-Fi 客户端模式
+- `WifiVendorHal.setApMacAddress()` – 用于 Wi-Fi 接入点（热点）模式
+
+同时，模块会强制系统认为 MAC 随机化受支持，通过覆写以下资源布尔值：
+- `config_wifi_connected_mac_randomization_supported`
+- `config_wifi_p2p_mac_randomization_supported`
+- `config_wifi_ap_mac_randomization_supported`
+
+这对于硬件驱动支持随机化、但厂商未在软件中开启的设备尤其有用。
+
+### AP MAC 覆写开关说明
+
+部分设备在修改热点 MAC 地址后无法正常启动热点（日志中会出现 `Could not set interface MAC address for wlan2` 错误）。为避免此问题，模块在 UI 中提供了 **“覆写 AP MAC 地址”** 开关（默认关闭）。当开关关闭时，模块不会拦截 `setApMacAddress` 调用，系统将使用默认随机 MAC 启动热点。
+
+如果您需要为热点也使用自定义 MAC，只需打开此开关即可。
+
+## 使用方法
+
+1. 安装模块，并在 LSPosed 中激活（作用域：**系统框架**）。
+2. 重启设备。
+3. 打开 **MAC Editor** 应用。
+4. 如需替换随机 MAC，开启 **“覆写随机 MAC”**。
+5. 输入有效的 MAC 地址（例如 `02:00:00:00:00:01`），或点击 **“生成随机 MAC”**。
+6. 点击 **“应用 MAC 地址”**。
+7. 对于 Wi‑Fi 连接，请确保在网络的“隐私”设置中选中 **“使用随机 MAC”**。
+8. 如需为热点使用自定义 MAC，请开启 **“覆写 AP MAC 地址”**（如果热点无法启动，建议保持关闭）。
+9. 重新连接 Wi‑Fi 或重启热点以应用更改。
+
+## 语言切换
+
+应用支持英文和中文。切换方法：
+- 点击右上角菜单（三个点）。
+- 选择 **“语言”**，然后选择您偏好的语言。
+- 界面会立即刷新。
+
+## 高通设备注意事项
+
+某些高通芯片组的硬件支持可通过查看以下文件确认：
+- `/vendor/etc/wifi/kiwi_v2/WCNSS_qcom_cfg.ini`
+- `/vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini`
+
+对于不支持 MAC 随机化的老款高通设备，建议直接修改 `wlan_mac.bin` 或 `/sys/wifi/mac_addr`，而不是使用本模块。
+
+## 致谢
+
+本项目是 [MAC Editor](https://github.com/jqssun/android-mac-editor) 原项目（作者 [jqssun](https://github.com/jqssun)）的修改版。  
+最初的系统服务钩子实现由 [David Berdik](https://f-droid.org/repo/com.berdik.macsposed_6_src.tar.gz) 提供。  
+感谢原作者的出色工作。
+
+## AI 辅助开发
+
+本项目使用 AI 辅助开发。
+
+## 许可证
+
+本项目基于 [GNU General Public License v3.0](LICENSE) 开源。所有原始版权声明均已保留。
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\build.gradle.kts
+完整路径: D:/android-mac-editor-Rillwyn\app\build.gradle.kts
+==================== 文件内容开始 ====================
+import java.util.Properties
+
+plugins {
+    alias(libs.plugins.agp.app)
+    alias(libs.plugins.kotlin)
+}
+
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
+android {
+    namespace = "io.github.Rillwyn.maceditor"
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk = 29
+        targetSdk = 36
+        versionCode = 8
+        versionName = "0.0.8"
+        applicationId = "io.github.Rillwyn.maceditor"
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true
+    }
+
+    signingConfigs {
+        if (localProps.containsKey("storeFile")) {
+            create("release") {
+                storeFile = file(localProps["storeFile"] as String)
+                storePassword = localProps["storePassword"] as String
+                keyAlias = localProps["keyAlias"] as String
+                keyPassword = localProps["keyPassword"] as String
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles("proguard-rules.pro")
+            signingConfigs.findByName("release")?.let {
+                signingConfig = it
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    kotlin {
+        jvmToolchain(21)
+    }
+
+    packaging {
+        resources {
+            merges += "META-INF/xposed/*"
+            excludes += "**"
+        }
+    }
+
+    lint {
+        abortOnError = true
+        checkReleaseBuilds = false
+    }
+}
+
+dependencies {
+    implementation(libs.appcompat)
+    implementation(libs.constraintlayout)
+    implementation(libs.material)
+    implementation(libs.libxposed.service)
+    compileOnly(libs.libxposed.api)
+}
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\AndroidManifest.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\AndroidManifest.xml
+==================== 文件内容开始 ====================
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:label="@string/app_name"
+        android:description="@string/xposed_description"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.Material3.DynamicColors.DayNight.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".MacBroadcastReceiver"
+            android:exported="false" />
+    </application>
+
+</manifest>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\MACEditor.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\MACEditor.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor
+
+import android.util.Log
+import io.github.Rillwyn.maceditor.hookers.WifiConfigHooker
+import io.github.Rillwyn.maceditor.hookers.WifiServiceHooker
+import io.github.libxposed.api.XposedModule
+import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
+import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
+
+const val TAG = "MACEditor"
+
+private lateinit var module: MACEditor
+
+class MACEditor : XposedModule() {
+
+    override fun onModuleLoaded(param: ModuleLoadedParam) {
+        super.onModuleLoaded(param)
+        module = this
+    }
+
+    override fun onSystemServerStarting(param: SystemServerStartingParam) {
+        super.onSystemServerStarting(param)
+        try {
+            WifiServiceHooker.hook(param, this)
+        } catch (e: Exception) {
+            log(Log.ERROR, TAG, "ERROR: $e")
+        }
+        try {
+            WifiConfigHooker.hook(param, this)
+        } catch (e: Exception) {
+            log(Log.ERROR, TAG, "Failed to hook WiFi config resources: $e")
+        }
+    }
+}
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\MacBroadcastReceiver.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\MacBroadcastReceiver.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+
+class MacBroadcastReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val mac = intent.getStringExtra(EXTRA_MAC) ?: return
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString("deviceMac", mac.uppercase()).apply()
+    }
+
+    companion object {
+        const val ACTION_MAC_DETECTED = "${BuildConfig.APPLICATION_ID}.ACTION_MAC_DETECTED"
+        const val EXTRA_MAC = "mac"
+        const val PREFS_NAME = "local_prefs"
+    }
+}
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\MainActivity.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\MainActivity.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.res.Configuration
+import android.os.Bundle
+import android.provider.Settings
+import android.text.InputFilter
+import android.view.Menu
+import android.view.MenuItem
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
+import io.github.Rillwyn.maceditor.databinding.ActivityMainBinding
+import io.github.Rillwyn.maceditor.hookers.WifiServiceHooker
+import io.github.Rillwyn.maceditor.utils.MacTextWatcher
+import io.github.Rillwyn.maceditor.utils.MacUtils
+import io.github.Rillwyn.maceditor.utils.PrefManager
+import io.github.Rillwyn.maceditor.utils.XposedChecker
+import java.util.Locale
+
+class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
+    private var updatingUI = false
+
+    private val macReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            _refreshDeviceMac()
+            _updateStatusCard()
+        }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        // 从本地 SharedPreferences 读取语言
+        val prefs = newBase.getSharedPreferences(MacBroadcastReceiver.PREFS_NAME, Context.MODE_PRIVATE)
+        val lang = prefs.getString("language", "") ?: ""
+        val locale = if (lang.isNotEmpty()) Locale(lang) else Locale.getDefault()
+        Locale.setDefault(locale)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
+
+        _setupToggles()
+        _setupMacCard()
+        binding.footerNote.text = getString(R.string.footer_note, getString(R.string.force_mac_randomization_label))
+
+        PrefManager.loadPrefs { runOnUiThread { _refreshAll() } }
+        _refreshAll()
+
+        // AP 覆写开关监听
+        binding.apMacOverrideSwitch.setOnCheckedChangeListener { _, checked ->
+            if (updatingUI) return@setOnCheckedChangeListener
+            PrefManager.setApMacOverride(checked)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ContextCompat.registerReceiver(
+            this,
+            macReceiver,
+            IntentFilter(MacBroadcastReceiver.ACTION_MAC_DETECTED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        _refreshAll()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(macReceiver)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, 1, 0, R.string.language_select)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == 1) {
+            showLanguageDialog()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun showLanguageDialog() {
+        val prefs = getSharedPreferences(MacBroadcastReceiver.PREFS_NAME, Context.MODE_PRIVATE)
+        val currentLang = prefs.getString("language", "") ?: ""
+        val items = arrayOf(getString(R.string.language_english), getString(R.string.language_chinese))
+        val checkedItem = when (currentLang) {
+            "en" -> 0
+            "zh" -> 1
+            else -> {
+                val sysLang = resources.configuration.locales[0].language
+                if (sysLang.startsWith("zh")) 1 else 0
+            }
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.language_select)
+            .setSingleChoiceItems(items, checkedItem) { _, which ->
+                val lang = when (which) {
+                    0 -> "en"
+                    1 -> "zh"
+                    else -> ""
+                }
+                prefs.edit().putString("language", lang).apply()
+                recreate()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun _refreshAll() {
+        updatingUI = true
+        _updateStatusCard()
+        _refreshDeviceMac()
+        _refreshActiveMac()
+        binding.hookSwitch.isChecked = PrefManager.isHookOn()
+        binding.forceRandomizationSwitch.isChecked = PrefManager.isForceShowMacRandomization()
+        binding.apMacOverrideSwitch.isChecked = PrefManager.isApMacOverride()
+        val saved = PrefManager.getCustomMac()
+        if (saved.isNotEmpty() && binding.edittextNewMac.text.isNullOrEmpty()) {
+            binding.edittextNewMac.setText(saved)
+        }
+        updatingUI = false
+    }
+
+    private fun _isSystemServerHooked(): Boolean {
+        return getSharedPreferences(MacBroadcastReceiver.PREFS_NAME, MODE_PRIVATE)
+            .getString("deviceMac", null) != null
+    }
+
+    private fun _updateStatusCard() {
+        val enabled = XposedChecker.isEnabled()
+        val hooked = enabled && _isSystemServerHooked()
+        val hookOn = hooked && PrefManager.isHookOn()
+
+        when {
+            !enabled -> {
+                binding.moduleStatusIcon.setImageResource(R.drawable.ic_disabled_24)
+                binding.moduleStatus.text = getString(R.string.status_not_activated)
+                binding.serviceStatus.text = getString(R.string.status_detail_not_activated)
+            }
+            !hooked -> {
+                binding.moduleStatusIcon.setImageResource(R.drawable.ic_error_24)
+                binding.moduleStatus.text = getString(R.string.status_inactive)
+                binding.serviceStatus.text = getString(R.string.status_detail_inactive)
+            }
+            !hookOn -> {
+                binding.moduleStatusIcon.setImageResource(R.drawable.ic_warning_24)
+                binding.moduleStatus.text = getString(R.string.status_activated)
+                binding.serviceStatus.text = getString(R.string.status_detail_hook_off)
+            }
+            else -> {
+                binding.moduleStatusIcon.setImageResource(R.drawable.ic_baseline_router_24)
+                binding.moduleStatus.text = getString(R.string.status_activated)
+                binding.serviceStatus.text = getString(R.string.status_detail_hook_on)
+            }
+        }
+    }
+
+    private fun _setupToggles() {
+        binding.hookSwitch.setOnCheckedChangeListener { _, checked ->
+            if (updatingUI) return@setOnCheckedChangeListener
+            PrefManager.setHookState(checked)
+            _updateStatusCard()
+        }
+        binding.forceRandomizationSwitch.setOnCheckedChangeListener { _, checked ->
+            if (updatingUI) return@setOnCheckedChangeListener
+            PrefManager.setForceShowMacRandomization(checked)
+        }
+    }
+
+    private fun _refreshDeviceMac() {
+        val localPrefs = getSharedPreferences(MacBroadcastReceiver.PREFS_NAME, MODE_PRIVATE)
+        val mac = localPrefs.getString("deviceMac", null)
+        binding.textviewDeviceMac.text = mac ?: getString(R.string.mac_not_set)
+    }
+
+    private fun _refreshActiveMac() {
+        val saved = PrefManager.getCustomMac()
+        binding.textviewCurrentMac.text = saved.ifEmpty { getString(R.string.mac_not_set) }
+    }
+
+    private fun _setupMacCard() {
+        val editText = binding.edittextNewMac
+        editText.filters = arrayOf(InputFilter.AllCaps(), InputFilter.LengthFilter(17))
+        editText.addTextChangedListener(MacTextWatcher())
+
+        binding.btnGenerateMac.setOnClickListener {
+            editText.setText(MacUtils.generateRandom())
+        }
+
+        binding.btnSetMac.setOnClickListener {
+            val mac = editText.text.toString().uppercase()
+            when (MacUtils.validate(mac)) {
+                MacUtils.ValidationResult.BAD_LENGTH ->
+                    _showError(getString(R.string.error_bad_length))
+                MacUtils.ValidationResult.ALL_ZEROS ->
+                    _showError(getString(R.string.error_all_zeros))
+                MacUtils.ValidationResult.ODD_FIRST_OCTET ->
+                    _showError(getString(R.string.error_odd_first_octet))
+                MacUtils.ValidationResult.VALID -> {
+                    PrefManager.setCustomMac(mac)
+                    binding.textviewCurrentMac.text = mac
+                    _applyMac()
+                }
+            }
+        }
+    }
+
+    private fun _applyMac() {
+        sendBroadcast(Intent(WifiServiceHooker.ACTION_APPLY_MAC))
+        Snackbar.make(binding.root, R.string.mac_set_success, Snackbar.LENGTH_LONG)
+            .setAction(R.string.open_wifi_settings) {
+                startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+            }
+            .show()
+    }
+
+    private fun _showError(msg: String) {
+        MaterialAlertDialogBuilder(this)
+            .setMessage(msg)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+}
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\hookers\WifiConfigHooker.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\hookers\WifiConfigHooker.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor.hookers
+
+import android.content.res.Resources
+import android.util.Log
+import io.github.Rillwyn.maceditor.BuildConfig
+import io.github.Rillwyn.maceditor.TAG
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedModule
+import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
+
+class WifiConfigHooker {
+    companion object {
+        private var module: XposedModule? = null
+
+        private val TARGET_KEYS = setOf(
+            "config_wifi_connected_mac_randomization_supported",
+            "config_wifi_p2p_mac_randomization_supported",
+            "config_wifi_ap_mac_randomization_supported"
+        )
+
+        fun hook(param: SystemServerStartingParam, module: XposedModule) {
+            this.module = module
+            module.hook(
+                Resources::class.java.getDeclaredMethod("getBoolean", Int::class.javaPrimitiveType)
+            ).intercept(ResourceBoolHooker())
+        }
+
+        class ResourceBoolHooker : XposedInterface.Hooker {
+            override fun intercept(chain: XposedInterface.Chain): Any? {
+                val result = chain.proceed()
+                val prefs = module?.getRemotePreferences(BuildConfig.APPLICATION_ID)
+                if (prefs?.getBoolean("forceShowMacRandomization", true) != true) return result
+
+                val res = chain.thisObject as? Resources ?: return result
+                val id = chain.getArg(0) as Int
+                try {
+                    val name = res.getResourceEntryName(id)
+                    if (name in TARGET_KEYS) {
+                        module?.log(Log.INFO, TAG, "Forced $name to true")
+                        return true
+                    }
+                } catch (_: Resources.NotFoundException) {
+                }
+                return result
+            }
+        }
+    }
+}
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\hookers\WifiServiceHooker.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\hookers\WifiServiceHooker.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor.hookers
+
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.net.MacAddress
+import android.util.Log
+import io.github.Rillwyn.maceditor.BuildConfig
+import io.github.Rillwyn.maceditor.TAG
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedModule
+import io.github.libxposed.api.XposedModuleInterface.SystemServerStartingParam
+import java.lang.reflect.Method
+
+class WifiServiceHooker {
+    companion object {
+        var module: XposedModule? = null
+            private set
+
+        const val ACTION_APPLY_MAC = "${BuildConfig.APPLICATION_ID}.ACTION_APPLY_MAC"
+        const val ACTION_MAC_DETECTED = "${BuildConfig.APPLICATION_ID}.ACTION_MAC_DETECTED"
+        private const val RECEIVER_CLASS = "${BuildConfig.APPLICATION_ID}.MacBroadcastReceiver"
+
+        // cached WifiNative state
+        private var nativeInstance: Any? = null
+        private var nativeSetStaMethod: Method? = null
+        private var nativeSetApMethod: Method? = null
+        private var lastIfaceName: String? = null
+        private var receiverRegistered = false
+
+        @SuppressLint("PrivateApi")
+        fun hook(param: SystemServerStartingParam, module: XposedModule) {
+            this.module = module
+            module.hook(
+                param.classLoader.loadClass("com.android.server.SystemServiceManager")
+                    .getDeclaredMethod("loadClassFromLoader", String::class.java, ClassLoader::class.java)
+            ).intercept { chain ->
+                val result = chain.proceed()
+                val className = chain.getArg(0) as String
+                if (className == "com.android.server.wifi.WifiService") {
+                    val cl = chain.getArg(1) as ClassLoader
+                    val nativeClass = cl.loadClass("com.android.server.wifi.WifiNative")
+                    val setStaMethod = nativeClass.getDeclaredMethod("setStaMacAddress", String::class.java, MacAddress::class.java)
+                    val setApMethod = nativeClass.getDeclaredMethod("setApMacAddress", String::class.java, MacAddress::class.java)
+                    nativeSetStaMethod = setStaMethod
+                    nativeSetApMethod = setApMethod
+                    val hooker = MacAddrHooker()
+                    module.hook(setStaMethod).intercept(hooker)
+                    module.hook(setApMethod).intercept(hooker)
+                    module.log(Log.INFO, TAG, "Hooked WifiNative.setStaMacAddress and setApMacAddress")
+                }
+                result
+            }
+        }
+
+        @SuppressLint("PrivateApi")
+        private fun _getSystemContext(): Context? {
+            return try {
+                val at = Class.forName("android.app.ActivityThread")
+                at.getMethod("currentApplication").invoke(null) as? Context
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        private fun _registerApplyReceiver() {
+            if (receiverRegistered) return
+            val ctx = _getSystemContext() ?: return
+            ctx.registerReceiver(object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    _applyMacDirectly()
+                }
+            }, IntentFilter(ACTION_APPLY_MAC), Context.RECEIVER_EXPORTED)
+            receiverRegistered = true
+            module?.log(Log.INFO, TAG, "Registered apply-MAC receiver in system_server")
+        }
+
+        private fun _applyMacDirectly() {
+            val native = nativeInstance
+            val method = nativeSetStaMethod
+            val iface = lastIfaceName
+            if (native == null || method == null || iface == null) {
+                module?.log(Log.WARN, TAG, "Cannot apply MAC: WifiNative not cached yet")
+                return
+            }
+            val prefs = module?.getRemotePreferences(BuildConfig.APPLICATION_ID)
+            val mac = prefs?.getString("customMac", "") ?: ""
+            if (mac.isEmpty()) return
+
+            try {
+                method.invoke(native, iface, MacAddress.fromString(mac))
+                module?.log(Log.INFO, TAG, "Directly applied MAC: $mac on $iface")
+            } catch (e: Exception) {
+                module?.log(Log.ERROR, TAG, "Failed to directly apply MAC: $e")
+            }
+        }
+
+        private fun _broadcastDeviceMac(mac: MacAddress) {
+            try {
+                val ctx = _getSystemContext() ?: return
+                val intent = Intent(ACTION_MAC_DETECTED).apply {
+                    putExtra("mac", mac.toString())
+                    setClassName(BuildConfig.APPLICATION_ID, RECEIVER_CLASS)
+                }
+                ctx.sendBroadcast(intent)
+            } catch (e: Exception) {
+                module?.log(Log.WARN, TAG, "Could not broadcast MAC: $e")
+            }
+        }
+
+        class MacAddrHooker : XposedInterface.Hooker {
+            override fun intercept(chain: XposedInterface.Chain): Any? {
+                val prefs = module?.getRemotePreferences(BuildConfig.APPLICATION_ID)
+                val hookActive = prefs?.getBoolean("hookActive", true) ?: true
+
+                if (!hookActive) return chain.proceed()
+
+                // cache WifiNative instance and iface
+                nativeInstance = chain.thisObject
+                val ifaceName = chain.getArg(0) as? String
+                lastIfaceName = ifaceName
+                _registerApplyReceiver()
+
+                // broadcast the system-assigned MAC to the app
+                (chain.getArg(1) as? MacAddress)?.let { _broadcastDeviceMac(it) }
+
+                // ------------------------------------------------------------
+                // 改动：直接根据接口名称判断是否为 AP 接口（通常为 wlan2）
+                // 如果是 AP 接口，且 apMacOverride 开关为 false，则直接放行，不替换 MAC
+                // ------------------------------------------------------------
+                val apOverride = prefs?.getBoolean("apMacOverride", false) ?: false
+                if (ifaceName != null && ifaceName.startsWith("wlan") && !ifaceName.equals("wlan0", ignoreCase = true)) {
+                    // 非 wlan0 的 wlan 接口通常为 AP（如 wlan2）
+                    if (!apOverride) {
+                        module?.log(Log.INFO, TAG, "AP MAC override disabled, skipping replacement for $ifaceName")
+                        return chain.proceed()
+                    }
+                }
+
+                val customMac = prefs?.getString("customMac", "") ?: ""
+                if (customMac.isNotEmpty()) {
+                    val args = chain.args.toTypedArray()
+                    args[1] = MacAddress.fromString(customMac)
+                    module?.log(Log.INFO, TAG, "Replacing MAC with $customMac on $ifaceName")
+                    return chain.proceed(args)
+                }
+                return chain.proceed()
+            }
+        }
+    }
+}
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\utils\MacTextWatcher.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\utils\MacTextWatcher.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor.utils
+
+import android.text.Editable
+import android.text.TextWatcher
+
+class MacTextWatcher : TextWatcher {
+    private var editing = false
+
+    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+    override fun afterTextChanged(s: Editable?) {
+        if (editing || s == null) return
+        editing = true
+
+        val raw = s.toString().replace(":", "").uppercase()
+        val sb = StringBuilder()
+        for (i in raw.indices) {
+            if (i > 0 && i % 2 == 0) sb.append(':')
+            sb.append(raw[i])
+        }
+        val formatted = sb.toString()
+        if (formatted != s.toString()) {
+            s.replace(0, s.length, formatted)
+        }
+
+        editing = false
+    }
+}
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\utils\MacUtils.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\utils\MacUtils.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor.utils
+
+import kotlin.random.Random
+
+object MacUtils {
+
+    enum class ValidationResult {
+        VALID, BAD_LENGTH, ALL_ZEROS, ODD_FIRST_OCTET
+    }
+
+    fun validate(mac: String): ValidationResult {
+        if (mac.length != 17) return ValidationResult.BAD_LENGTH
+        if (!mac.matches(Regex("^[0-9A-F]{2}(:[0-9A-F]{2}){5}$"))) return ValidationResult.BAD_LENGTH
+        if (mac == "00:00:00:00:00:00") return ValidationResult.ALL_ZEROS
+        val firstOctet = mac.substring(0, 2).toInt(16)
+        if (firstOctet % 2 != 0) return ValidationResult.ODD_FIRST_OCTET
+        return ValidationResult.VALID
+    }
+
+    fun generateRandom(): String {
+        val octets = ByteArray(6).also { Random.nextBytes(it) }
+        // ensure first octet is even (unicast) and non-zero
+        var first = octets[0].toInt() and 0xFE
+        if (first == 0) first = 2
+        octets[0] = first.toByte()
+        // ensure last octet non-zero to avoid all-zeros
+        if (octets[5].toInt() and 0xFF == 0) octets[5] = 1
+        return octets.joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
+    }
+}
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\utils\PrefManager.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\utils\PrefManager.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor.utils
+
+import android.content.SharedPreferences
+import io.github.Rillwyn.maceditor.BuildConfig
+import io.github.libxposed.service.XposedService
+import io.github.libxposed.service.XposedServiceHelper
+
+class PrefManager {
+    companion object {
+        private var prefs: SharedPreferences? = null
+        private var loaded = false
+
+        fun loadPrefs(onReady: (() -> Unit)? = null) {
+            if (loaded) {
+                if (XposedChecker.isEnabled()) onReady?.invoke()
+                return
+            }
+            loaded = true
+            XposedServiceHelper.registerListener(object : XposedServiceHelper.OnServiceListener {
+                override fun onServiceBind(service: XposedService) {
+                    XposedChecker.flagAsEnabled()
+                    prefs = service.getRemotePreferences(BuildConfig.APPLICATION_ID)
+                    onReady?.invoke()
+                }
+
+                override fun onServiceDied(service: XposedService) {}
+            })
+        }
+
+        fun isHookOn(): Boolean {
+            return prefs?.getBoolean("hookActive", true) ?: true
+        }
+
+        fun setHookState(on: Boolean) {
+            prefs?.edit()?.putBoolean("hookActive", on)?.apply()
+        }
+
+        fun getCustomMac(): String {
+            return prefs?.getString("customMac", "") ?: ""
+        }
+
+        fun setCustomMac(mac: String) {
+            prefs?.edit()?.putString("customMac", mac)?.apply()
+        }
+
+        fun isForceShowMacRandomization(): Boolean {
+            return prefs?.getBoolean("forceShowMacRandomization", true) ?: true
+        }
+
+        fun setForceShowMacRandomization(on: Boolean) {
+            prefs?.edit()?.putBoolean("forceShowMacRandomization", on)?.apply()
+        }
+
+        // New: AP MAC override
+        fun isApMacOverride(): Boolean {
+            return prefs?.getBoolean("apMacOverride", false) ?: false
+        }
+
+        fun setApMacOverride(on: Boolean) {
+            prefs?.edit()?.putBoolean("apMacOverride", on)?.apply()
+        }
+
+        // New: Language preference (default empty means system default)
+        fun getLanguage(): String {
+            return prefs?.getString("language", "") ?: ""
+        }
+
+        fun setLanguage(lang: String) {
+            prefs?.edit()?.putString("language", lang)?.apply()
+        }
+    }
+}
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\java\io\github\Rillwyn\maceditor\utils\XposedChecker.kt
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\java\io\github\Rillwyn\maceditor\utils\XposedChecker.kt
+==================== 文件内容开始 ====================
+package io.github.Rillwyn.maceditor.utils
+
+class XposedChecker {
+    companion object {
+        private var isEnabled = false
+
+        fun flagAsEnabled() {
+            isEnabled = true
+        }
+
+        fun isEnabled(): Boolean {
+            return isEnabled
+        }
+    }
+}
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\drawable\ic_baseline_router_24.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\drawable\ic_baseline_router_24.xml
+==================== 文件内容开始 ====================
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M20.2,5.9l0.8,-0.8C19.6,3.7 17.8,3 16,3s-3.6,0.7 -5,2.1l0.8,0.8C13,4.8 14.5,4.2 16,4.2s3,0.6 4.2,1.7zM19.3,6.7c-0.9,-0.9 -2.1,-1.4 -3.3,-1.4s-2.4,0.5 -3.3,1.4l0.8,0.8c0.7,-0.7 1.6,-1 2.5,-1 0.9,0 1.8,0.3 2.5,1l0.8,-0.8zM19,13h-2L17,9h-2v4L5,13c-1.1,0 -2,0.9 -2,2v4c0,1.1 0.9,2 2,2h14c1.1,0 2,-0.9 2,-2v-4c0,-1.1 -0.9,-2 -2,-2zM8,18L6,18v-2h2v2zM11.5,18h-2v-2h2v2zM15,18h-2v-2h2v2z"/>
+</vector>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\drawable\ic_disabled_24.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\drawable\ic_disabled_24.xml
+==================== 文件内容开始 ====================
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorOnPrimary">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M17,3H7C5.9,3 5,3.9 5,5v14c0,1.1 0.9,2 2,2h10c1.1,0 2,-0.9 2,-2V5C19,3.9 18.1,3 17,3zM15.54,13.12l-1.41,1.41L12,12.41l-2.12,2.12l-1.41,-1.41L10.59,11L8.46,8.88l1.41,-1.41L12,9.59l2.12,-2.12l1.41,1.41L13.41,11L15.54,13.12z" />
+</vector>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\drawable\ic_error_24.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\drawable\ic_error_24.xml
+==================== 文件内容开始 ====================
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorOnPrimary">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM13,17h-2v-2h2v2zM13,13h-2L11,7h2v6z" />
+</vector>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\drawable\ic_launcher_foreground.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\drawable\ic_launcher_foreground.xml
+==================== 文件内容开始 ====================
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="27"
+        android:translateY="27"
+        android:scaleX="0.05625"
+        android:scaleY="0.05625">
+        <group android:translateY="960">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M339,-262q22,-22 49.5,-36t58.5,-19q-5,19 -8,38t-3,39q0,24 3.5,47t11.5,44L339,-262ZM254,-346l-84,-86q62,-62 142,-95t168,-33q49,0 96,10.5t90,30.5q-44,8 -81.5,29T517,-438q-9,-1 -18.5,-1.5T480,-440q-64,0 -122.5,24.5T254,-346ZM84,-516L0,-600q95,-97 219.5,-148.5T480,-800q136,0 260.5,51.5T960,-600l-84,84q-79,-79 -181.5,-121.5T480,-680q-112,0 -214.5,42.5T84,-516ZM760,-440l12,60q12,5 22.5,10.5T816,-356l58,-18 40,68 -46,40q2,12 2,26t-2,26l46,40 -40,68 -58,-18q-11,8 -21.5,13.5T772,-100l-12,60h-80l-12,-60q-12,-5 -22.5,-10.5T624,-124l-58,18 -40,-68 46,-40q-2,-12 -2,-26t2,-26l-46,-40 40,-68 58,18q11,-8 21.5,-13.5T668,-380l12,-60h80ZM663.5,-296.5Q640,-273 640,-240t23.5,56.5Q687,-160 720,-160t56.5,-23.5Q800,-207 800,-240t-23.5,-56.5Q753,-320 720,-320t-56.5,23.5Z" />
+        </group>
+    </group>
+</vector>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\drawable\ic_warning_24.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\drawable\ic_warning_24.xml
+==================== 文件内容开始 ====================
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorOnPrimary">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M1,21h22L12,2 1,21zM13,18h-2v-2h2v2zM13,14h-2v-4h2v4z" />
+</vector>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\layout\activity_main.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\layout\activity_main.xml
+==================== 文件内容开始 ====================
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:elevation="0dp"
+            app:title="@string/app_name" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="20dp"
+        android:scrollbars="none"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:orientation="vertical">
+
+            <!-- Status Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/status_card"
+                style="@style/Widget.Material3.CardView.Elevated"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:cardBackgroundColor="?attr/colorPrimary">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="16dp">
+
+                    <ImageView
+                        android:id="@+id/module_status_icon"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginEnd="16dp"
+                        android:src="@drawable/ic_baseline_router_24"
+                        app:tint="?attr/colorOnPrimary" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/module_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textColor="?attr/colorOnPrimary" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/service_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            android:textColor="?attr/colorOnPrimary" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Hook Toggle Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/hook_toggle_card"
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/hook_toggle_label"
+                            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/hook_toggle_desc"
+                            android:textAppearance="?attr/textAppearanceBodySmall" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/hook_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- MAC Address Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mac_addr_card"
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="16dp">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:paddingBottom="4dp"
+                        android:text="@string/device_mac"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/textview_device_mac"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:paddingBottom="12dp"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:typeface="monospace" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="?android:attr/listDivider" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="4dp"
+                        android:text="@string/current_mac"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/textview_current_mac"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:paddingBottom="12dp"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:typeface="monospace" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="?android:attr/listDivider" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:paddingTop="12dp"
+                        android:text="@string/new_mac"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edittext_new_mac"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:digits="abcdefABCDEF1234567890:"
+                        android:gravity="center"
+                        android:inputType="textNoSuggestions"
+                        android:layoutDirection="ltr"
+                        android:maxLength="17"
+                        android:singleLine="true"
+                        android:typeface="monospace" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_generate_mac"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_generate_mac" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_set_mac"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_set_mac" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Force Show MAC Randomization Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/force_randomization_card"
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/force_mac_randomization_label"
+                            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/force_mac_randomization_desc"
+                            android:textAppearance="?attr/textAppearanceBodySmall" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/force_randomization_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- NEW: AP MAC Override Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/ap_mac_override_card"
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/ap_mac_override_label"
+                            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/ap_mac_override_desc"
+                            android:textAppearance="?attr/textAppearanceBodySmall" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/ap_mac_override_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/footer_note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="12dp"
+                android:textAlignment="center"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:alpha="0.6" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\mipmap-anydpi-v26\ic_launcher.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\mipmap-anydpi-v26\ic_launcher.xml
+==================== 文件内容开始 ====================
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\mipmap-anydpi-v26\ic_launcher_round.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\mipmap-anydpi-v26\ic_launcher_round.xml
+==================== 文件内容开始 ====================
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\values-zh\strings.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\values-zh\strings.xml
+==================== 文件内容开始 ====================
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MAC 编辑器</string>
+    <string name="xposed_description">自定义 MAC 地址。</string>
+    <string name="status_activated">模块已启用</string>
+    <string name="status_not_activated">模块未启用</string>
+    <string name="status_inactive">模块未激活</string>
+    <string name="status_detail_not_activated">模块启用并重启后，首选项才能加载。</string>
+    <string name="status_detail_inactive">确保系统作用域已启用，然后应用 MAC 地址覆写以激活模块。</string>
+    <string name="status_detail_hook_on">覆写已启用：正在使用自定义 MAC</string>
+    <string name="status_detail_hook_off">覆写已禁用：正在使用默认 MAC</string>
+
+    <string name="hook_toggle_label">覆写随机 MAC</string>
+    <string name="hook_toggle_desc">必须在设置中“网络详情”的“隐私”下勾选“使用随机 MAC”</string>
+    <string name="force_mac_randomization_label">强制启用 MAC 随机化</string>
+    <string name="force_mac_randomization_desc">强制支持随机化，并在“网络详情”中显示“隐私”部分</string>
+    <string name="device_mac">系统 MAC</string>
+    <string name="current_mac">当前 MAC</string>
+    <string name="new_mac">待应用 MAC</string>
+    <string name="mac_not_set">未知</string>
+    <string name="btn_generate_mac">生成随机 MAC</string>
+    <string name="btn_set_mac">应用 MAC 地址</string>
+
+    <string name="mac_set_success">MAC 已保存。重新连接 Wi-Fi 以应用。</string>
+    <string name="open_wifi_settings">打开</string>
+    <string name="error_bad_length">错误：MAC 地址必须为 48 位（例如 00:11:22:AA:BB:CC）。</string>
+    <string name="error_all_zeros">错误：MAC 地址不能全为零。</string>
+    <string name="error_odd_first_octet">错误：MAC 地址的第一个字节必须为偶数。</string>
+
+    <string name="footer_note">需要硬件驱动支持 MAC 随机化。更改“%s”后需重启设备。</string>
+
+    <!-- 新增 AP 覆写和语言切换 -->
+    <string name="ap_mac_override_label">覆写 AP MAC 地址</string>
+    <string name="ap_mac_override_desc">将自定义 MAC 应用于移动热点（AP 模式）</string>
+    <string name="language_select">语言</string>
+    <string name="language_english">English</string>
+    <string name="language_chinese">中文</string>
+</resources>
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\values\ic_launcher_background.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\values\ic_launcher_background.xml
+==================== 文件内容开始 ====================
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#0B57D0</color>
+</resources>
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: app\src\main\res\values\strings.xml
+完整路径: D:/android-mac-editor-Rillwyn\app\src\main\res\values\strings.xml
+==================== 文件内容开始 ====================
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MAC Editor</string>
+    <string name="xposed_description">Customize MAC address.</string>
+    <string name="status_activated">Module Enabled</string>
+    <string name="status_not_activated">Module Disabled</string>
+    <string name="status_inactive">Module Inactive</string>
+    <string name="status_detail_not_activated">Preferences cannot load until module is enabled after a reboot.</string>
+    <string name="status_detail_inactive">Ensure system is enabled in scope, then apply MAC address override to activate the module.</string>
+    <string name="status_detail_hook_on">Override enabled: custom MAC in use</string>
+    <string name="status_detail_hook_off">Override disabled: default MAC in use</string>
+
+    <string name="hook_toggle_label">Override randomized MAC</string>
+    <string name="hook_toggle_desc">\"Use randomized MAC\" must be selected in \"Privacy\" under \"Network details\" in Settings</string>
+    <string name="force_mac_randomization_label">Force enable MAC randomization</string>
+    <string name="force_mac_randomization_desc">Force support for randomization and show \"Privacy\" section in \"Network details\"</string>
+    <string name="device_mac">System MAC</string>
+    <string name="current_mac">Active MAC</string>
+    <string name="new_mac">Standby MAC</string>
+    <string name="mac_not_set">Unknown</string>
+    <string name="btn_generate_mac">Generate Random MAC</string>
+    <string name="btn_set_mac">Apply MAC Address</string>
+
+    <string name="mac_set_success">MAC saved. Reconnect Wi-Fi to apply.</string>
+    <string name="open_wifi_settings">Open</string>
+    <string name="error_bad_length">Error: MAC address must be 48 bits long (e.g. 00:11:22:AA:BB:CC).</string>
+    <string name="error_all_zeros">Error: MAC address must not be all zeros.</string>
+    <string name="error_odd_first_octet">Error: MAC address must have an even first octet.</string>
+
+    <string name="footer_note">Requires hardware driver support for MAC randomization. Reboot required for \"%s\".</string>
+
+    <!-- New strings for AP override and language -->
+    <string name="ap_mac_override_label">Override AP MAC address</string>
+    <string name="ap_mac_override_desc">Apply custom MAC to mobile hotspot (AP mode)</string>
+    <string name="language_select">Language</string>
+    <string name="language_english">English</string>
+    <string name="language_chinese">中文</string>
+</resources>
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: build.gradle.kts
+完整路径: D:/android-mac-editor-Rillwyn\build.gradle.kts
+==================== 文件内容开始 ====================
+tasks.register("Delete", Delete::class) {
+    delete(rootProject.layout.buildDirectory)
+}
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: fastlane\metadata\android\en-US\full_description.txt
+完整路径: D:/android-mac-editor-Rillwyn\fastlane\metadata\android\en-US\full_description.txt
+==================== 文件内容开始 ====================
+A free and open-source module that gives you granular control over the Wi-Fi MAC address on Android devices. It supports manual MAC override and enables native MAC randomization support exposed by Android on supported hardware regardless of the OEM's implementation. You can use it, for example, to customize MAC behavior for privacy, or to assist devices with limited captive portal support to access the Internet on certain Wi-Fi networks.
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: fastlane\metadata\android\en-US\short_description.txt
+完整路径: D:/android-mac-editor-Rillwyn\fastlane\metadata\android\en-US\short_description.txt
+==================== 文件内容开始 ====================
+Securely edit Wi-Fi MAC address on Android.
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: gradle.properties
+完整路径: D:/android-mac-editor-Rillwyn\gradle.properties
+==================== 文件内容开始 ====================
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+kotlin.code.style=official
+android.nonTransitiveRClass=true
+android.nonFinalResIds=false
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: gradle\wrapper\gradle-wrapper.properties
+完整路径: D:/android-mac-editor-Rillwyn\gradle\wrapper\gradle-wrapper.properties
+==================== 文件内容开始 ====================
+#Tue Jan 11 07:41:34 CST 2022
+distributionBase=GRADLE_USER_HOME
+distributionUrl=https\://mirrors.aliyun.com/macports/distfiles/gradle/gradle-8.13-bin.zip
+distributionPath=wrapper/dists
+zipStorePath=wrapper/dists
+zipStoreBase=GRADLE_USER_HOME
+
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: local.properties
+完整路径: D:/android-mac-editor-Rillwyn\local.properties
+==================== 文件内容开始 ====================
+sdk.dir=C:/Android/sdk
+storeFile=Rillwyn-release-key.jks
+storePassword=Rillwyn@6366
+keyAlias=android-mac-editor
+keyPassword=Rillwyn@6366
+==================== 文件内容结束 ====================
+================================================================================
+
+文件路径: settings.gradle.kts
+完整路径: D:/android-mac-editor-Rillwyn\settings.gradle.kts
+==================== 文件内容开始 ====================
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
+    repositories {
+        google()
+        mavenCentral()
+    }
+    versionCatalogs {
+        create("libs")
+    }
+}
+
+rootProject.name = "MACEditor"
+include(":app")
+
+==================== 文件内容结束 ====================
+================================================================================
+

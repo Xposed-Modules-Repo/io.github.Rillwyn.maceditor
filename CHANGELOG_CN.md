@@ -6,6 +6,12 @@
 
 ---
 
+## [0.0.9] - 2026-08-24
+
+### Fixed
+- **Release 版本激活问题**：修正 `META-INF/xposed` 目录下 `java_init.list`、`module.prop`、`scope.list` 中的包名和作用域名称，确保 LSPosed 正确加载模块。
+---
+
 ## [0.0.8] - 2026-08-24
 
 ### 新增功能

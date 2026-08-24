@@ -6,6 +6,13 @@ All changes are made under the terms of the original license (GPL-3.0), and all 
 
 ---
 
+## [0.0.9] - 2026-08-24
+
+### Fixed
+- **Release build activation issue**: Corrected the package name and scope in `META-INF/xposed` files (`java_init.list`, `module.prop`, `scope.list`) to ensure LSPosed properly loads the module. The previous files still referenced the original author's package name (`io.github.jqssun.maceditor`) and used an invalid scope (`system` instead of `android`), preventing the module from being injected into the system server.
+
+---
+
 ## [0.0.8] - 2026-08-24
 
 ### Added
