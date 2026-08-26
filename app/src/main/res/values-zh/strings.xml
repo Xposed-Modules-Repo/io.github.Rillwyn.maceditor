@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MAC 编辑器</string>
+    <string name="xposed_description">自定义 MAC 地址。</string>
+    <string name="status_activated">模块已启用</string>
+    <string name="status_not_activated">模块未启用</string>
+    <string name="status_inactive">模块未激活</string>
+    <string name="status_detail_not_activated">模块启用并重启后，首选项才能加载。</string>
+    <string name="status_detail_inactive">确保系统作用域已启用，然后应用 MAC 地址覆写以激活模块。</string>
+    <string name="status_detail_hook_on">覆写已启用：正在使用自定义 MAC</string>
+    <string name="status_detail_hook_off">覆写已禁用：正在使用默认 MAC</string>
+    <!-- 状态卡片副标题（随当前 MAC 状态动态变化） -->
+    <string name="status_detail_hook_on_custom">正在使用自定义 MAC\n%1$s\n系统 MAC：%2$s</string>
+    <string name="status_detail_hook_on_system">正在使用系统 MAC：%1$s</string>
+
+    <string name="hook_toggle_label">覆写随机 MAC</string>
+    <string name="hook_toggle_desc">必须在设置中“网络详情”的“隐私”下勾选“使用随机 MAC”</string>
+    <string name="force_mac_randomization_label">强制启用 MAC 随机化</string>
+    <string name="force_mac_randomization_desc">强制支持随机化，并在“网络详情”中显示“隐私”部分</string>
+    <string name="device_mac">系统 MAC</string>
+    <string name="current_mac">当前 MAC</string>
+    <string name="new_mac">待应用 MAC</string>
+    <string name="mac_not_set">未知</string>
+    <string name="btn_generate_mac">生成随机 MAC</string>
+    <string name="btn_set_mac">应用 MAC 地址</string>
+
+    <string name="mac_set_success">MAC 已保存。重新连接 Wi-Fi 以应用。</string>
+    <string name="open_wifi_settings">打开</string>
+    <string name="error_bad_length">错误：MAC 地址必须为 48 位（例如 00:11:22:AA:BB:CC）。</string>
+    <string name="error_all_zeros">错误：MAC 地址不能全为零。</string>
+    <string name="error_odd_first_octet">错误：MAC 地址的第一个字节必须为偶数。</string>
+
+    <string name="footer_note">需要硬件驱动支持 MAC 随机化。更改“%s”后需重启设备。</string>
+
+    <!-- 新增 AP 覆写和语言切换 -->
+    <string name="ap_mac_override_label">覆写 AP MAC 地址</string>
+    <string name="ap_mac_override_desc">将自定义 MAC 应用于移动热点（AP 模式）</string>
+    <string name="language_select">语言</string>
+    <string name="language_english">English</string>
+    <string name="language_chinese">中文</string>
+</resources>
