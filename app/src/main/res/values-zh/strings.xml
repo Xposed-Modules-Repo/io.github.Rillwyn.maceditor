@@ -38,4 +38,21 @@
     <string name="language_select">语言</string>
     <string name="language_english">English</string>
     <string name="language_chinese">中文</string>
+
+    <!-- 底部导航与工具栏标题 -->
+    <string name="tab_home">主页</string>
+    <string name="tab_settings">设置</string>
+    <string name="tab_about">关于</string>
+    <string name="toolbar_settings">设置</string>
+    <string name="toolbar_about">关于</string>
+
+    <!-- 关于页 -->
+    <string name="about_this_project">本项目</string>
+    <string name="about_original_project">原项目</string>
+    <string name="about_source_note">基于原项目思路，使用 YukiHookAPI 全面重写</string>
+    <string name="about_maintainer">当前维护者</string>
+    <string name="about_maintainer_name">Rillwyn</string>
+    <string name="about_version">版本 %s</string>
+    <string name="about_this_project_url">https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor</string>
+    <string name="about_original_project_url">https://github.com/jqssun/android-mac-editor</string>
 </resources>

@@ -18,8 +18,8 @@ android {
     defaultConfig {
         minSdk = 29
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.0.10"
+        versionCode = 11
+        versionName = "0.1.0"
         applicationId = "io.github.Rillwyn.maceditor"
     }
 
@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
     implementation(libs.material)
+    implementation(libs.viewpager2)
 
     // YukiHookAPI 核心库（1.3.2，基于 XposedBridge/LSPosed 兼容层）
     implementation(libs.yukihookapi.api)

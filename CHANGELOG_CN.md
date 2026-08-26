@@ -6,6 +6,29 @@
 
 ---
 
+## [0.1.0] - 2026-08-26
+
+### 新增
+- **三页面 UI：底部导航 + 滑动切换**：将原单页滚动布局重构为**主页 / 设置 / 关于**三个页面，通过 `BottomNavigationView` + `ViewPager2` 切换（点击底部 Tab 或左右滑动）。新增 `androidx.viewpager2` 依赖。
+  - **主页**：模块状态卡片、「覆写随机 MAC」开关、MAC 地址卡片（系统 MAC / 当前 MAC / 待应用 MAC 输入框 / 生成随机 / 应用按钮）、底部说明文字——MAC 核心功能全部留在主页。
+  - **设置**：语言行内单选（English / 中文，点击即保存并原地重建界面，重建后回到原所在页面）、「强制启用 MAC 随机化」开关、「覆写 AP MAC 地址」开关。
+  - **关于**：应用图标、应用名、版本号（从 `BuildConfig.VERSION_NAME` 自动读取）、本项目与原项目链接（项目名 + 完整 URL，整行可点击并在浏览器打开）、来源说明（"Based on the original project's approach, fully rewritten with YukiHookAPI"）、当前维护者（Rillwyn）。
+- 顶部工具栏标题随页面切换（主页显示应用名，设置/关于显示各自标题）。
+- 新增三个底部导航 Tab 的矢量图标（主页 / 设置 / 关于）。
+
+### 变更
+- `MainActivity` 改为容器：承载 ViewPager2 适配器与底部导航联动；工具栏语言菜单移除（移入设置页）；记录当前所在页面，语言切换（`recreate()`）后回到同一页面。
+- 新增 `HomeFragment` / `SettingsFragment` / `AboutFragment` 三个 Fragment 承载迁移后的 UI 逻辑；广播接收器与 DataChannel 系统 MAC 拉取逻辑位于 `HomeFragment`。
+- 版本号升至 `0.1.0`（`versionCode` 10 → 11）。
+
+### 修复
+- **release APK 中丢失 `META-INF/xposed/` 文件**（module.prop、scope.list）：已恢复到 `src/main/resources/META-INF/xposed/`，重新打包进 APK 根目录——LSPosed 依赖这些文件识别模块与作用域。`java_init.list` 仍刻意不创建（存在会让 LSPosed 改走 libxposed 加载路径导致模块失效）。
+
+### 文档
+- 更新 `UI_REFACTOR_PLAN.md`（本次改动的总纲文档）。
+
+---
+
 ## [0.0.10] - 2026-08-25
 
 ### 核心重构

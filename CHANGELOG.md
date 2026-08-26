@@ -6,6 +6,29 @@ All changes are made under the terms of the original license (GPL-3.0), and all 
 
 ---
 
+## [0.1.0] - 2026-08-26
+
+### Added
+- **Three-page UI with bottom navigation + swipe**: The single scrolling page was restructured into **Home / Settings / About** pages, switched via `BottomNavigationView` + `ViewPager2` (tap a tab or swipe horizontally). Requires the new `androidx.viewpager2` dependency.
+  - **Home**: module status card, "Override randomized MAC" switch, MAC address card (system MAC / active MAC / standby MAC input / generate / apply), and the footer note — the core MAC features stay on the home page.
+  - **Settings**: inline language selection (English / 中文, saved immediately and rebuilt in place — the app returns to the page you were on), "Force enable MAC randomization" switch, and "Override AP MAC address" switch.
+  - **About**: app icon, app name, version read automatically from `BuildConfig.VERSION_NAME`, this project and original project links (project name + full URL, whole row clickable, opens in browser), a source note ("Based on the original project's approach, fully rewritten with YukiHookAPI"), and the maintainer (Rillwyn).
+- Toolbar title now follows the current page (Home shows the app name, Settings/About show their titles).
+- Three new vector icons for the bottom navigation tabs (home / settings / info).
+
+### Changed
+- `MainActivity` is now a container hosting the `ViewPager2` adapter and bottom-navigation linkage; the language menu was removed from the toolbar (moved to the Settings page); the current tab is remembered so a language switch (`recreate()`) returns to the same page.
+- New fragments `HomeFragment` / `SettingsFragment` / `AboutFragment` own the migrated UI logic; the broadcast receiver and DataChannel system-MAC pull live in `HomeFragment`.
+- Version bumped to `0.1.0` (`versionCode` 10 → 11).
+
+### Fixed
+- **`META-INF/xposed/` files were missing from the release APK** (module.prop, scope.list): restored under `src/main/resources/META-INF/xposed/` so they are packaged into the APK root again — LSPosed needs them to recognize the module and its scope. `java_init.list` stays absent on purpose (it would switch LSPosed to the libxposed loading path and break the module).
+
+### Documentation
+- Updated `UI_REFACTOR_PLAN.md` (the agreed refactor plan for this change).
+
+---
+
 ## [0.0.10] - 2026-08-25
 
 ### Core Refactor
