@@ -23,7 +23,8 @@ You can use it to:
 - **Force MAC randomization** – enable hidden randomization support for standard Wi-Fi, Wi‑Fi Direct, and mobile hotspot.
 - **Per‑network or per‑connection control** – works when “Use randomized MAC” is selected in Wi‑Fi network details.
 - **AP MAC override toggle** – independently enable/disable MAC replacement for the hotspot interface (default: **off**). Helps devices where changing AP MAC breaks hotspot functionality.
-- **Multi‑language UI** – supports English and Chinese, switchable via the app menu.
+- **Multi‑language UI** – supports English and Chinese, switchable from the **Settings** page.
+- **Three‑page UI (since v0.1.0)** – **Home** (status card, MAC override switch, MAC address card), **Settings** (language, force randomization, AP override), and **About** (project links, maintainer, version). Switch by bottom navigation tabs or swiping left/right.
 
 ## Compatibility
 
@@ -33,7 +34,6 @@ You can use it to:
 ## Implementation Details
 
 This module is built on **YukiHookAPI 1.3.2** (fully refactored since v0.0.10). The entry uses the `@InjectYukiHookWithXposed` annotation, and the KSP processor auto-generates the Xposed entry assets (`assets/xposed_init`) and the module-status class.
-
 On modern Android, the Wi-Fi subsystem (via `WifiNative`) can randomize MAC addresses per network or per connection. This module hooks the following system server methods to allow manual MAC assignment when randomization is enabled:
 
 - `WifiNative.setStaMacAddress()` / `WifiVendorHal.setStaMacAddress()` – for station (client) Wi‑Fi.
@@ -89,9 +89,9 @@ If you need a custom MAC for hotspot as well, simply turn this switch **on**.
 ## Language Switching
 
 The app supports English and Chinese. To switch:
-- Tap the three-dot menu in the top‑right corner.
-- Select **“Language”** and choose your preferred language.
-- The UI will refresh immediately.
+- Open the **Settings** page (bottom navigation).
+- Tap **English** or **中文** under **Language**.
+- The UI refreshes immediately and returns to the page you were on.
 
 ## Notes for Qualcomm Devices
 
