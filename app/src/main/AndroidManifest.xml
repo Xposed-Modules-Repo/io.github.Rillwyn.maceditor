@@ -7,6 +7,7 @@
         android:description="@string/xposed_description"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
         android:theme="@style/Theme.Material3.DynamicColors.DayNight.NoActionBar">
 
         <!-- 传统 Xposed 模块声明：供 LSPosed / Xposed 识别模块、描述与最低版本 -->

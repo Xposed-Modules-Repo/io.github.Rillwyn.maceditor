@@ -5,9 +5,7 @@
     <string name="status_activated">模块已启用</string>
     <string name="status_not_activated">模块未启用</string>
     <string name="status_inactive">模块未激活</string>
-    <string name="status_detail_not_activated">模块启用并重启后，首选项才能加载。</string>
     <string name="status_detail_inactive">确保系统作用域已启用，然后应用 MAC 地址覆写以激活模块。</string>
-    <string name="status_detail_hook_on">覆写已启用：正在使用自定义 MAC</string>
     <string name="status_detail_hook_off">覆写已禁用：正在使用默认 MAC</string>
     <!-- 状态卡片副标题（随当前 MAC 状态动态变化） -->
     <string name="status_detail_hook_on_custom">正在使用自定义 MAC\n%1$s\n系统 MAC：%2$s</string>
@@ -33,11 +31,17 @@
     <string name="footer_note">需要硬件驱动支持 MAC 随机化。更改“%s”后需重启设备。</string>
 
     <!-- 新增 AP 覆写和语言切换 -->
+    <string name="hook_enabled_instant">覆写已开启，即时生效。</string>
+    <string name="hook_disabled_instant">覆写已关闭，已恢复出厂/默认 MAC。</string>
+    <string name="ap_override_enabled_instant">AP MAC 覆写已开启，即时生效。</string>
+    <string name="ap_override_disabled_instant">AP MAC 覆写已关闭，已恢复默认热点 MAC。</string>
+    <string name="reconnect_wifi_hint">重新连接 Wi-Fi</string>
     <string name="ap_mac_override_label">覆写 AP MAC 地址</string>
     <string name="ap_mac_override_desc">将自定义 MAC 应用于移动热点（AP 模式）</string>
     <string name="language_select">语言</string>
     <string name="language_english">English</string>
     <string name="language_chinese">中文</string>
+    <string name="language_arabic">العربية</string>
 
     <!-- 底部导航与工具栏标题 -->
     <string name="tab_home">主页</string>
@@ -51,7 +55,7 @@
     <string name="about_original_project">原项目</string>
     <string name="about_source_note">基于原项目思路，使用 YukiHookAPI 全面重写</string>
     <string name="about_maintainer">当前维护者</string>
-    <string name="about_maintainer_name">Rillwyn</string>
+    <string name="about_maintainer_name">Rillwyn &amp; Eng. Amr Eldeeb</string>
     <string name="about_version">版本 %s</string>
     <string name="about_this_project_url">https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor</string>
     <string name="about_original_project_url">https://github.com/jqssun/android-mac-editor</string>

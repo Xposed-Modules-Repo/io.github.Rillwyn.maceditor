@@ -2,6 +2,7 @@
 <resources>
     <!-- Xposed 模块作用域声明：系统框架 -->
     <string-array name="xposed_scope">
-        <item>android</item>
+        <item>system</item>
+        <item>com.android.settings</item>
     </string-array>
 </resources>

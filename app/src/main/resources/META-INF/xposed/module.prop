@@ -1,9 +1,9 @@
 id=io.github.Rillwyn.maceditor
 name=MAC Editor
-version=0.1.0
-versionCode=11
-author=Rillwyn
+version=0.2.0
+versionCode=12
+author=Rillwyn & Eng. Amr Eldeeb
 description=Customize MAC address.
-minApiVersion=101
-targetApiVersion=101
+minApiVersion=100
+targetApiVersion=100
 staticScope=true

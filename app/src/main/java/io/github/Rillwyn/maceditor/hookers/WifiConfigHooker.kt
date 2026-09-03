@@ -6,39 +6,49 @@ import com.highcapable.yukihookapi.hook.param.PackageParam
 import io.github.Rillwyn.maceditor.TAG
 
 /**
- * 系统资源 Hook 实现（loadSystem 作用域）。
+ * Android 系统资源布尔值拦截钩子套件（`loadSystem` 作用域）。
  *
- * 在 system_server 中 Hook `Resources.getBoolean(int)`，每次调用时按资源名拦截，
- * 将以下系统 bool 资源强制返回 true（按用户开关决定），使系统认为
- * Wi-Fi / Wi-Fi Direct / 热点均支持 MAC 随机化：
+ * 核心架构机制：
+ * 1. **普通方法 Hook 替代 XResources**：通过拦截 `Resources.getBoolean(int)` 而非使用已被现代 Xposed（如 LSPosed）弃用的 XResources 资源替换，
+ *    确保在各主流框架（Zygisk / Riru）下拥有 100% 的兼容性与稳定性。
+ * 2. **动态强制开启硬件级随机化**：在系统服务请求以下 Wi-Fi 关键功能支持标志时，按资源名识别并动态返回 `true`：
+ *    - `config_wifi_connected_mac_randomization_supported`（已连接 Wi-Fi 网络 MAC 随机化）
+ *    - `config_wifi_p2p_mac_randomization_supported`（Wi-Fi Direct / P2P MAC 随机化）
+ *    - `config_wifi_ap_mac_randomization_supported`（移动热点 AP 模式 MAC 随机化）
+ * 3. **零重启即时联动**：读取 [WifiServiceHooker.isHookActive] 与 [WifiServiceHooker.isForceRandomization]，实现开关切换毫秒级生效。
  *
- * - config_wifi_connected_mac_randomization_supported
- * - config_wifi_p2p_mac_randomization_supported
- * - config_wifi_ap_mac_randomization_supported
- *
- * 采用普通方法 Hook（`Member.hook`），在 LSPosed（含 Zygisk 版）等框架上均可用，
- * 且开关切换即时生效（无需重启）。
+ * @sample
+ * ```kotlin
+ * // 在 HookEntry 的 loadSystem 回调中挂载
+ * WifiConfigHooker.hook(this)
+ * ```
  */
 object WifiConfigHooker {
 
+    /** 目标需要强制重写为 `true` 的系统级 Boolean 资源名称集合。 */
     private val TARGET_KEYS = setOf(
         "config_wifi_connected_mac_randomization_supported",
         "config_wifi_p2p_mac_randomization_supported",
         "config_wifi_ap_mac_randomization_supported"
     )
 
-    /** 模块偏好文件名（与模块应用侧保持一致） */
+    /** 模块共享偏好存储文件名。 */
     private const val PREFS_NAME = "io.github.Rillwyn.maceditor"
 
+    /**
+     * 向系统框架层装配 `Resources.getBoolean(int)` 拦截钩子。
+     *
+     * @param param YukiHookAPI 注入的 [PackageParam] 系统包环境参数。
+     */
     fun hook(param: PackageParam) {
-        val prefs = param.prefs(PREFS_NAME)
         with(param) {
             val method = runCatching {
                 Resources::class.java.getDeclaredMethod("getBoolean", Int::class.javaPrimitiveType)
             }.getOrNull() ?: return
             method.hook {
                 after {
-                    if (!prefs.getBoolean("forceShowMacRandomization", true)) return@after
+                    if (!WifiServiceHooker.isHookActive) return@after
+                    if (!WifiServiceHooker.isForceRandomization) return@after
                     val res = instanceOrNull as? Resources ?: return@after
                     val id = args(0).int()
                     val name = runCatching { res.getResourceEntryName(id) }.getOrNull() ?: return@after
