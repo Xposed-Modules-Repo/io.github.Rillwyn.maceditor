@@ -6,6 +6,25 @@
 
 ---
 
+## [0.2.5] - 2026-09-05
+
+### 新增与变更
+- **libxposed Modern Xposed API 102 支持**：依赖升级至 `102.0.0`；在 `module.prop` 中配置 `targetApiVersion=102` 与 `minApiVersion=101`，对接最新现代框架规范，同时保持对 API 101 环境的全面向后兼容。
+- **动态 RTL / LTR 布局切换**：在设置中切换语言（English / 中文 / العربية）后，全局界面布局方向（RTL ↔ LTR）立即无缝刷新，无需手动杀掉并重新打开应用。
+- **关于页滚动与溢出修复**：彻底解决在关于页点开可折叠“贡献者”列表及各个版本明细卡片时内容超出屏幕但无法滚动的问题。新增纵向滚动条、底部导航栏防遮挡间距（`clipToPadding="false"` + `paddingBottom="96dp"`）以及展开时的平滑自动滚入可视区域。
+- 版本号升至 `0.2.5`（`versionCode` 17）；`module.prop` 同步。
+
+---
+
+## [0.2.2] - 2026-09-05
+
+### 变更（界面）
+- **设置页 —— 语言下拉框**：语言选择由三按钮改为 Material 3 下拉框（`TextInputLayout` + `MaterialAutoCompleteTextView`）：English / 中文 / العربية。
+- **关于页 —— 维护者与贡献者**：维护者卡改为仓库维护者 **Rillwyn**；新增可折叠“贡献者”卡，列出 **Rillwyn** 与 **Eng. Amr Eldeeb**，每人可按版本展开查看各自做了什么（中/英/阿三语）。
+- 版本号升至 `0.2.2`（`versionCode` 13 → 14）；`module.prop` 同步。
+
+---
+
 ## [0.2.1] - 2026-09-05
 
 ### 合并（社区 [PR #1](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.android-mac-editor/pull/1)，作者 [engamreldeeb](https://github.com/engamreldeeb)）

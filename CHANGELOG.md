@@ -6,6 +6,25 @@ All changes are made under the terms of the original license (AGPL-3.0), and all
 
 ---
 
+## [0.2.5] - 2026-09-05
+
+### Added & Changed
+- **libxposed Modern Xposed API 102 support**: upgraded `libxposed:api` and `libxposed:service` to `102.0.0`; configured `targetApiVersion=102` and `minApiVersion=101` in `module.prop` to support the newest modern framework specifications while maintaining backward compatibility with API 101 environments.
+- **Dynamic RTL / LTR layout switching**: changing the app language in Settings (English / 中文 / العربية) immediately flips the layout direction (RTL ↔ LTR) across the entire UI without requiring a manual app kill and relaunch.
+- **About page scroll & overflow fix**: resolved the issue where expanding the collapsible **Contributors** tree and individual breakdown cards caused content to overflow the screen without being able to scroll. Added vertical scrollbars, bottom navigation clearance padding (`clipToPadding="false"` + `paddingBottom="96dp"`), and automatic scroll-into-view on expansion.
+- Version bumped to `0.2.5` (`versionCode` 17); `module.prop` synced.
+
+---
+
+## [0.2.2] - 2026-09-05
+
+### Changed (UI)
+- **Settings — language dropdown**: the three-button language selector was replaced with a Material 3 exposed-dropdown (`TextInputLayout` + `MaterialAutoCompleteTextView`): English / 中文 / العربية.
+- **About — maintainer & contributors**: the maintainer card now shows **Rillwyn** as repository maintainer; a new collapsible **Contributors** card lists **Rillwyn** and **Eng. Amr Eldeeb**, each with a per-version breakdown of what they did (EN / 中文 / العربية).
+- Version bumped to `0.2.2` (`versionCode` 13 → 14); `module.prop` synced.
+
+---
+
 ## [0.2.1] - 2026-09-05
 
 ### Merged (community PR #1 by [engamreldeeb](https://github.com/engamreldeeb))
