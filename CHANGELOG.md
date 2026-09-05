@@ -2,33 +2,49 @@
 
 This file documents all modifications made to the original [MAC Editor](https://github.com/jqssun/android-mac-editor) project by [jqssun](https://github.com/jqssun).
 
-All changes are made under the terms of the original license (GPL-3.0), and all original copyright notices are retained.
+All changes are made under the terms of the original license (AGPL-3.0), and all original copyright notices are retained.
 
 ---
 
-## [0.2.0] - 2026-09-03
+## [0.2.1] - 2026-09-05
 
-### Added
-- **Universal Multi-Vendor Compatibility (Android 10 - Android 16)**:
-  - Added comprehensive multi-vendor support for Google Pixel, Samsung (One UI), Xiaomi / Redmi (MIUI / HyperOS), Oppo / OnePlus / Realme (ColorOS / OxygenOS), Vivo / iQOO (OriginOS / Funtouch OS), Honor / Huawei (MagicOS / EMUI), Motorola, Sony, Asus, Nothing, Transsion (Infinix / Tecno), HTC, and ZTE.
-  - Multi-tiered Wi-Fi service discovery covering APEX `service-wifi.jar` classloader, `SystemServiceManager.loadClassFromLoader`, `ServiceManager.addService("wifi")`, dynamic binder reflection, and multi-vendor HAL/native class resolution (`WifiNative`, `WifiVendorHal`, `SemWifiNative`, `SemWifiVendorHal`, `MiuiWifiNative`, `MtkWifiNative`, `HwWifiNative`).
-  - Dynamic AP interface detection (`ap*`, `softap*`, `swlan*`, `wlan1`, etc.) via network interface scanning and dynamic hooks, ensuring AP MAC address changes apply seamlessly across varied chipset drivers.
-- **Zero-Click Instant Apply**:
-  - Toggling the "Override randomized MAC" or "Override AP MAC address" switches in the UI now immediately applies the MAC changes to the Wi-Fi/AP HAL and active network interfaces in real time via IPC broadcasts, eliminating the need to manually tap "Apply MAC Address" or toggle Wi-Fi / hotspot off and on.
-  - Immediate visual feedback (Snackbars) indicating instant application and active status.
-- **Arabic Language & Full RTL (Right-to-Left) Layout Support**:
-  - Full Arabic localization (`values-ar/strings.xml`) for all UI screens, dialogs, and messages.
-  - Comprehensive Right-to-Left (RTL) layout mirroring (`android:supportsRtl="true"`, dynamic locale layout direction).
-  - Enforced Left-to-Right (LTR) text direction for MAC address input fields, display chips, and hex values to preserve hexadecimal formatting integrity.
-  - Three-way inline language selector in the Settings page: English / 中文 / العربية.
-- **Maintenance & Authorship**:
-  - Maintained and developed collaboratively by **Rillwyn** and **Eng. Amr Eldeeb**.
+### Merged (community PR #1 by [engamreldeeb](https://github.com/engamreldeeb))
+- **Multi-vendor compatibility**: the hooker now probes AOSP + OEM `WifiNative` / `WifiVendorHal` stacks (Samsung `Sem*`, Xiaomi `Miui*`, MediaTek `Mtk*`, Huawei `Hw*`, …), watches `ServiceManager.addService("wifi")` for late-loading class loaders, detects dynamic hotspot interfaces (`ap*`, `softap*`, `swlan*`, `wlanN`) and reads vendor factory-MAC storage (Samsung EFS, Qualcomm `wlan_mac.bin`, …) — all ported onto the libxposed API 101 engine.
+- **Zero-click instant apply**: UI switch/MAC changes now broadcast `ACTION_CONFIG_CHANGED`; `system_server` applies the custom MAC to the STA and (optionally) AP interfaces immediately — no manual “Apply” / hotspot toggle needed.
+- **Arabic & RTL**: full `values-ar` translation, RTL layout support (`android:supportsRtl`), LTR protection for hex MAC fields, and a third language selector (English / 中文 / العربية) in Settings.
+- **Co-maintainer credit**: author/About updated to **Rillwyn & Eng. Amr Eldeeb**.
 
 ### Changed
-- Target SDK updated to Android 16 (`targetSdk = 37`, `compileSdk = 37`), maintaining compatibility down to Android 10 (`minSdk = 29`).
-- Replaced legacy broadcast receiver registration with `androidx.core.content.ContextCompat.registerReceiver` using explicit `RECEIVER_EXPORTED` flags, satisfying Android 14+ / 16 requirements and resolving lint warnings.
-- Updated Xposed scope (`scope.list` & `arrays.xml`) to include `com.android.settings` alongside `system` framework for complete system settings integration.
-- Version bumped to `0.2.0` (`versionCode` 11 → 12).
+- Version bumped to `0.2.1` (`versionCode` 12 → 13); `module.prop` synced.
+- Docs updated: README (EN/CN/AR), CHANGELOG (EN/CN/AR), release notes.
+
+---
+
+## [0.2.0] - 2026-09-05
+
+### Core refactor: migrated to the libxposed Modern Xposed API (API 101)
+- **Modern module entry**: Removed the YukiHookAPI entry (`HookEntry` / `@InjectYukiHookWithXposed` / KSP processor / `assets/xposed_init`); added `MacEditorModule : XposedModule`, declared in `META-INF/xposed/java_init.list`.
+- **Build dependency swap**: `io.github.libxposed:api:101.0.1` (compileOnly) + `io.github.libxposed:service:101.0.0` (implementation) replace `com.highcapable.yukihookapi:*` and the local `libs/api-82.jar`; KSP removed. `module.prop` declares `minApiVersion=101` / `targetApiVersion=101` / `staticScope=true`; scope `scope.list` = `system` (system_server).
+- **Manifest cleanup**: Removed the legacy `xposedmodule` / `xposedminversion` / `xposedscope` meta-data and the `MODULE_SETTINGS` category. Module name/description now come from `android:label` / `android:description`.
+
+### Changed
+- **Cross-process preferences now use Remote Preferences (framework database)**: the module app reads/writes via `XposedService.getRemotePreferences`, the `system_server` hook side reads (read-only) via `XposedModule.getRemotePreferences` and registers a change listener — settings apply live without reboot. The local `SharedPreferences` file is only a cache when inactive and the source for a one-shot sync on activation.
+- **Activation detection via XposedService**: `YukiHookAPI.Status.isModuleActive` → `App.isModuleActive()` (the framework only pushes its service to the module app while the module is active); the UI refreshes the status card through a service-state listener.
+- **System-MAC pull over broadcast**: `YukiHookDataChannel` → the app sends `ACTION_QUERY_MAC` and `system_server` answers with `ACTION_MAC_DETECTED`.
+- **Hook model switched to interceptor chains**: `Member.hook { before/after }` → `hook(Executable).intercept { chain -> … chain.proceed(newArgs) }`. `Resources.getBoolean` is still overridden via a plain method hook (the modern API removed resource replacement — this module does not need it).
+- Build config: `compileSdk` 37 → 36 (YukiHookAPI's hard requirement on 37 is gone); removed `libs/api-82.jar`, `arrays.xml`, KSP, and `android.suppressUnsupportedCompileSdk`.
+- Version bumped to `0.2.0` (`versionCode` 11 → 12; `module.prop` updated to match).
+
+### Documentation
+- Updated the YukiHookAPI / legacy XposedBridge architecture descriptions in `README.md`, `README_CN.md`.
+
+### Follow-up additions
+- **Status-card icons switched to official Material Symbols vectors**: active `CheckCircle`, inactive `Error`, hook-off `Warning` (replacing the hand-made `ic_baseline_router_24` / `ic_error_24` / `ic_warning_24`).
+- **Extended status detection**: while active, the status card shows framework name/version, Xposed API version, scope and remote-preferences capability (from `XposedService`); added a dedicated “scope does not include `system`” warning branch plus actionable hints for the inactive / hook-off states; when the framework lacks remote-preferences capability (no `PROP_CAP_REMOTE`) or the service is briefly unavailable, preferences automatically fall back to the local cache instead of throwing.
+- **Release signing**: generated `keystore/maceditor-release.p12` inside the repo (PKCS12, RSA-4096, git-ignored); parameters (`storeFile`/`storePassword`/`keyAlias`/`keyPassword`/`storeType`) are written to the ignored `local.properties`, so `assembleRelease` signs automatically (v2 signature verified).
+- **Unified small text & smaller MAC lines in the status card**: subtitle and extra rows now both use `BodySmall`; MAC addresses moved to a dedicated smaller monospace row (`status_mac`, shown only while active).
+- **IME behavior**: `MainActivity` now uses `windowSoftInputMode="adjustPan"` — while typing a MAC the window pans so the input stays visible, and the bottom navigation no longer rises to the top of the keyboard but stays at the screen bottom (covered by the keyboard).
+- **Material-styled MAC input**: the “Standby MAC” input is now a Material3 `TextInputLayout` (OutlinedBox) with its section title turned into a floating hint, plus the built-in **clear_text** end icon. All original behaviour is kept (character filtering / auto-capitalization / auto-formatting / generate / apply).
 
 ---
 

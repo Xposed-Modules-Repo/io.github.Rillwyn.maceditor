@@ -2,33 +2,49 @@
 
 本文件记录了基于 [MAC Editor](https://github.com/jqssun/android-mac-editor) 原项目（作者 [jqssun](https://github.com/jqssun)）所做的所有修改。
 
-所有修改均遵循原项目许可证（GPL-3.0），并保留了原始版权声明。
+所有修改均遵循原项目许可证（AGPL-3.0），并保留了原始版权声明。
 
 ---
 
-## [0.2.0] - 2026-09-03
+## [0.2.1] - 2026-09-05
 
-### 新增
-- **全厂商广泛兼容（Android 10 至 Android 16）**：
-  - 深度适配主流所有 OEM 厂商：Google Pixel、Samsung（One UI）、Xiaomi / Redmi（MIUI / HyperOS）、Oppo / OnePlus / Realme（ColorOS / OxygenOS）、Vivo / iQOO（OriginOS / Funtouch OS）、Honor / 华为（MagicOS / EMUI）、Motorola、Sony、Asus、Nothing、传音 Transsion（Infinix / Tecno）、HTC 与 ZTE。
-  - 多重 ClassLoader 发现机制：覆盖 APEX `service-wifi.jar`、`SystemServiceManager.loadClassFromLoader`、`ServiceManager.addService("wifi")`、动态 Binder 反射及多厂商 Native/HAL 类兼容（`WifiNative`、`WifiVendorHal`、`SemWifiNative`、`SemWifiVendorHal`、`MiuiWifiNative`、`MtkWifiNative`、`HwWifiNative`）。
-  - 动态 AP 接口感知（`ap*`、`softap*`、`swlan*`、`wlan1` 等）：结合网络接口扫描与底层 Hook，确保各类芯片与热点驱动下 MAC 均能平滑修改。
-- **零点击即时生效（Zero-Click Instant Apply）**：
-  - 在界面中切换「覆写随机 MAC」或「覆写 AP MAC 地址」开关时，立即通过 IPC 广播更新底层 Wi-Fi/AP HAL 与活跃接口，无需再手动点击“应用 MAC 地址”，无需反复开关 Wi-Fi 或热点。
-  - 界面提供即时反馈提示（Snackbar）与动态状态卡片联动。
-- **阿拉伯语完整本地化与 RTL（从右至左）界面适配**：
-  - 完整阿拉伯语支持（`values-ar/strings.xml`），覆盖所有屏幕文本、弹窗与提示。
-  - 全局 RTL 镜像布局支持（`android:supportsRtl="true"`，根据系统/选择语言动态调整布局方向）。
-  - MAC 地址输入框、展示标签及十六进制文本强制保持 LTR（从左至右），防止双向文本乱序。
-  - 设置页面新增三语单选切换：English / 中文 / العربية。
-- **维护者与署名**：
-  - 由 **Rillwyn** 与 **Eng. Amr Eldeeb** 共同维护与开发。
+### 合并（社区 [PR #1](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.android-mac-editor/pull/1)，作者 [engamreldeeb](https://github.com/engamreldeeb)）
+- **多厂商兼容**：Hooker 现在会探测 AOSP 与 OEM 定制 `WifiNative`/`WifiVendorHal`（Samsung `Sem*`、Xiaomi `Miui*`、MediaTek `Mtk*`、Huawei `Hw*` 等），监听 `ServiceManager.addService("wifi")` 捕获延迟加载的 ClassLoader，动态识别热点接口（`ap*`、`softap*`、`swlan*`、`wlanN`），并读取厂商出厂 MAC 存储（三星 EFS、高通 `wlan_mac.bin` 等）——以上全部移植到 libxposed API 101 引擎上。
+- **零点击即时生效**：界面开关/MAC 变更即广播 `ACTION_CONFIG_CHANGED`，system_server 立即把自定义 MAC 应用到 STA 与（可选）AP 接口——无需手动“应用”或开关热点。
+- **阿拉伯语与 RTL**：完整 `values-ar` 翻译、RTL 布局支持（`android:supportsRtl`）、MAC 十六进制字段强制 LTR，设置页新增三语切换（English / 中文 / العربية）。
+- **共同署名**：作者/关于页更新为 **Rillwyn & Eng. Amr Eldeeb**。
 
 ### 变更
-- 目标 SDK 升级至 Android 16（`targetSdk = 37`，`compileSdk = 37`），最低支持版本保持为 Android 10（`minSdk = 29`）。
-- 广播接收器注册更新为 `androidx.core.content.ContextCompat.registerReceiver` 并显式指定 `RECEIVER_EXPORTED`，满足 Android 14+ / 16 安全规范并通过 Lint 严格检查。
-- Xposed 作用域（`scope.list` 与 `arrays.xml`）补充 `com.android.settings`，实现更全面的系统级适配。
-- 版本号升至 `0.2.0`（`versionCode` 11 → 12）。
+- 版本号升至 `0.2.1`（`versionCode` 12 → 13）；`module.prop` 同步。
+- 文档更新：README（EN/CN/AR）、CHANGELOG（EN/CN/AR）、发布说明。
+
+---
+
+## [0.2.0] - 2026-09-05
+
+### 核心重构：迁移至 libxposed Modern Xposed API（API 101）
+- **模块入口改为现代 API**：删除 YukiHookAPI 入口（`HookEntry` / `@InjectYukiHookWithXposed` / KSP 处理器 / `assets/xposed_init`），新增 `MacEditorModule : XposedModule`，在 `META-INF/xposed/java_init.list` 声明。
+- **构建依赖替换**：以 `io.github.libxposed:api:101.0.1`（compileOnly）与 `io.github.libxposed:service:101.0.0`（implementation）替换 `com.highcapable.yukihookapi:*` 与本地 `libs/api-82.jar`；移除 KSP 插件；`module.prop` 声明 `minApiVersion=101` / `targetApiVersion=101` / `staticScope=true`，作用域 `scope.list` = `system`（system_server）。
+- **Manifest 清理**：移除 legacy 的 `xposedmodule` / `xposedminversion` / `xposedscope` meta-data 与 `MODULE_SETTINGS` category；模块名称/说明改由 `android:label` / `android:description` 提供。
+
+### Changed
+- **跨进程偏好设置改用 Remote Preferences（框架数据库）**：模块 App 经 `XposedService.getRemotePreferences` 读写，system_server 内 Hook 经 `XposedModule.getRemotePreferences` 只读并注册变更监听——设置修改后无需重启即时生效；本地 `SharedPreferences` 仅作未激活时缓存与“先设置后激活”的同步来源。
+- **激活状态检测改用 XposedService 绑定**：`YukiHookAPI.Status.isModuleActive` → `App.isModuleActive()`（框架仅在模块激活时向模块 App 推送服务），UI 通过服务状态监听器实时刷新状态卡。
+- **系统 MAC 拉取改广播**：`YukiHookDataChannel` → 应用发送 `ACTION_QUERY_MAC`，system_server 接收后回发 `ACTION_MAC_DETECTED`。
+- **Hook 模型改为拦截链**：`Member.hook { before/after }` → `hook(Executable).intercept { chain -> … chain.proceed(新参数) }`；`Resources.getBoolean` 仍以普通方法 Hook 覆写返回值（现代 API 已移除资源替换能力，本模块不需要）。
+- 构建配置：`compileSdk` 37 → 36（移除 YukiHookAPI 对 37 的依赖）；删除 `libs/api-82.jar`、`arrays.xml`、KSP 与 `android.suppressUnsupportedCompileSdk`。
+- 版本号升至 `0.2.0`（`versionCode` 11 → 12，`module.prop` 同步更新）。
+
+### 文档
+- 更新 `README.md`、`README_CN.md` 中与 YukiHookAPI / legacy XposedBridge 相关的架构描述。
+
+### 后续增补
+- **状态卡图标换用官方 Material Symbols 矢量**：激活 `CheckCircle`、未激活 `Error`、Hook 关闭 `Warning`（替换原自绘 `ic_baseline_router_24` / `ic_error_24` / `ic_warning_24`）。
+- **状态检测扩展**：激活时状态卡追加框架名/版本、Xposed API 版本、作用域与远程偏好通道能力（来自 `XposedService`）；新增“作用域未包含 system”告警分支与未激活/关闭时的操作提示；框架缺少远程偏好能力（无 `PROP_CAP_REMOTE`）或服务瞬断时自动回退本地缓存，不再抛异常。
+- **release 签名**：生成仓库内 `keystore/maceditor-release.p12`（PKCS12，RSA-4096，已加入 `.gitignore`）；参数（`storeFile/storePassword/keyAlias/keyPassword/storeType`）写入已忽略的 `local.properties`，`assembleRelease` 自动签名（v2 已验证）。
+- **状态卡小字统一与 MAC 小字**：副标题与扩展行统一为 `BodySmall`；MAC 地址移入独立更小的等宽小字行（`status_mac`，monospace，仅激活时显示）。
+- **软键盘行为**：`MainActivity` 设置 `windowSoftInputMode="adjustPan"`——输入 MAC 时窗口整体平移以保证输入框可见，底部导航不再被顶到键盘上方，而是留在屏幕底部（被键盘覆盖）。
+- **MAC 输入框 Material 化**：“待应用 MAC”输入框改为 Material3 `TextInputLayout`（OutlinedBox）风格，区块标题并入浮动 hint；新增 Material 内置 **clear_text 清空按钮**。原有功能全部保留（字符过滤 / 自动大写 / 自动格式化 / 生成 / 应用）。
 
 ---
 

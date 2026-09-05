@@ -8,9 +8,9 @@
 .idea
 /app/build
 local.properties
+# 签名密钥库（release 构建专用，勿提交）
+keystore/
 .DS_Store
 *.jks
 *_merged.txt
 pack-into-package.txt
-.agent/
-.agents/

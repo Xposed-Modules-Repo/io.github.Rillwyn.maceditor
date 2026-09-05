@@ -1,103 +1,123 @@
-# MAC Editor for Android（修改增强版）
+# MAC Editor for Android（修改版）
 
-[English](README.md) | [中文](README_CN.md) | [العربية](README_AR.md)
+[![release](https://img.shields.io/github/v/release/Rillwyn/android-mac-editor?style=flat&label=release&color=blue)](https://github.com/Rillwyn/android-mac-editor/releases)
+[![build](https://img.shields.io/github/actions/workflow/status/Rillwyn/android-mac-editor/build-release.yml?style=flat&label=build)](https://github.com/Rillwyn/android-mac-editor/actions/workflows/build-release.yml)
+[![downloads](https://img.shields.io/github/downloads/Rillwyn/android-mac-editor/total?style=flat&label=downloads)](https://github.com/Rillwyn/android-mac-editor/releases)
+[![LSPosed 镜像](https://img.shields.io/github/downloads/Xposed-Modules-Repo/io.github.Rillwyn.android-mac-editor/total?style=flat&label=LSPosed%20镜像&logo=Android&labelColor=F48FB1&logoColor=ffffff)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.android-mac-editor/releases)
+[![license](https://img.shields.io/github/license/Rillwyn/android-mac-editor?color=green&style=flat)](https://github.com/Rillwyn/android-mac-editor/blob/main/LICENSE)
 
-[![Stars](https://img.shields.io/github/stars/Xposed-Modules-Repo/io.github.Rillwyn.maceditor)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/stargazers)
-[![LSPosed](https://img.shields.io/github/downloads/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/total?label=LSPosed&logo=Android&style=flat&labelColor=F48FB1&logoColor=ffffff)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
-[![GitHub](https://img.shields.io/github/downloads/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/total?label=GitHub&logo=GitHub)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
-[![release](https://img.shields.io/github/v/release/Xposed-Modules-Repo/io.github.Rillwyn.maceditor)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
-[![build](https://img.shields.io/github/actions/workflow/status/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/apk.yml)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/actions/workflows/apk.yml)
-[![license](https://img.shields.io/github/license/Xposed-Modules-Repo/io.github.Rillwyn.maceditor?color=green)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/blob/master/LICENSE)
+> **主仓库**：[github.com/Rillwyn/android-mac-editor](https://github.com/Rillwyn/android-mac-editor) —— 源码、Issue 与 Release
+> **Xposed 模块镜像仓库**（仅同步 Release 与说明）：[github.com/Xposed-Modules-Repo/io.github.Rillwyn.android-mac-editor](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.android-mac-editor)
+> Release 由主仓库的 `build-release.yml` 工作流自动构建发布（推送 `v*` tag 即触发）。
 
-> **注意**：本项目是基于 [MAC Editor](https://github.com/jqssun/android-mac-editor) 原项目（作者 [jqssun](https://github.com/jqssun)）的深度修改与增强版本，当前由 **Rillwyn** 与 **Eng. Amr Eldeeb** 共同维护开发。所有修改均遵循 GPL-3.0 许可证，并保留原始版权声明。
+> **注意**：本项目是基于 [MAC Editor](https://github.com/jqssun/android-mac-editor) 原项目（作者 [jqssun](https://github.com/jqssun)）的修改版。所有原始版权归原作者所有。此版本增加了若干增强功能（详见下文）。当前由 **Rillwyn** 与 **Eng. Amr Eldeeb** 共同维护与扩展（社区 [PR #1](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.android-mac-editor/pull/1)，作者 [engamreldeeb](https://github.com/engamreldeeb)）。
+> **语言**：English · 中文 · [العربية](README_AR.md) —— 界面支持 RTL 布局。
 
-**MAC Editor** 是一款基于 **YukiHookAPI 1.3.2** 构建的现代化开源 Xposed 模块，为您提供针对 Android 设备 Wi-Fi 与移动热点（AP）MAC 地址的精细化、高可靠性控制。
+**MAC Editor** 是一款免费开源的 Xposed 模块，让您精细控制 Android 设备的 Wi-Fi MAC 地址。它支持手动覆写 MAC，并能强制开启 Android 原生 MAC 随机化功能（只要硬件支持，无需 OEM 额外实现）。
 
 您可以用它来：
+- 自定义 MAC 地址以增强隐私保护。
+- 将随机 MAC 固定为您指定的值。
+- 在厂商禁用 MAC 随机化的设备上强制开启该功能。
+- **独立控制移动热点（AP）接口是否使用自定义 MAC** – 如果您的设备在修改热点 MAC 后无法开启热点，可关闭此开关（默认关闭）。
 
-- 自定义 MAC 地址以加强隐私保护或调试测试。
-- 将系统的随机化 MAC 地址替换为指定的单播 MAC 地址。
-- 在部分厂商禁用了硬件随机化的机型上，强制开启系统级 MAC 随机化支持。
-- **零点击即时生效**：界面切换开关即刻毫秒级同步硬件 HAL 与活跃网络接口。
-- 独立控制客户端 Wi-Fi 与热点（AP）的 MAC 替换行为。
+## 功能特性
 
----
+- **手动覆写 MAC** – 设置任意有效的单播 MAC 地址（首字节必须为偶数）。
+- **零点击即时生效（自 v0.2.1）** – 切换开关或修改 MAC 后立即同步到 Wi-Fi / 热点 HAL 与活跃接口，无需再手动点击“应用”。
+- **多厂商兼容（自 v0.2.1）** – 自动探测 AOSP 与 OEM 定制 `WifiNative`/`WifiVendorHal`（Samsung、Xiaomi、MediaTek、Huawei 等）、动态 AP 接口识别与厂商出厂 MAC 读取。
+- **强制 MAC 随机化** – 对标准 Wi-Fi、Wi‑Fi Direct 和移动热点启用隐藏的随机化支持。
+- **按网络/按连接控制** – 在 Wi‑Fi 网络详情中勾选“使用随机 MAC”后生效。
+- **AP MAC 覆写开关** – 独立开启/关闭对热点接口（`wlan2`）的 MAC 替换（默认 **关闭**）。可解决部分设备因修改热点 MAC 导致热点无法启动的问题。
+- **多语言界面** – 支持 English、中文与 العربية（含 RTL 布局），可在**设置**页面随时切换。
+- **三页面 UI（自 v0.1.0）** – **主页**（状态卡片、覆写随机 MAC 开关、MAC 地址卡片）、**设置**（语言、强制随机化、AP 覆写）、**关于**（项目链接、维护者、版本）。通过底部导航或左右滑动切换。
 
-## 核心功能
+## 兼容性
 
-- **⚡ 零点击即时生效（Zero-Click Instant Apply）**：
-  在界面中切换「覆写随机 MAC」或「覆写 AP MAC 地址」开关时，立即通过 IPC 广播更新底层 Wi-Fi/AP HAL 与活跃接口，无需再手动点击“应用 MAC 地址”，无需反复开关 Wi-Fi 或热点！
-- **🌐 全厂商深度兼容（Android 10 至 Android 16）**：
-  全方位适配主流 Android 厂商及定制系统：
-  - **Google Pixel**（AOSP / 原生 Android）
-  - **Samsung**（One UI —— `SemWifiNative` / `SemWifiVendorHal`）
-  - **Xiaomi / Redmi / POCO**（MIUI / HyperOS —— `MiuiWifiNative`）
-  - **Oppo / OnePlus / Realme**（ColorOS / OxygenOS / Realme UI）
-  - **Vivo / iQOO**（OriginOS / Funtouch OS）
-  - **Honor / 华为**（MagicOS / EMUI —— `HwWifiNative`）
-  - **Motorola、Sony、Asus、Nothing、传音 Transsion (Infinix / Tecno)、HTC 与 ZTE**
-- **🔍 动态 AP 热点接口感知**：
-  动态枚举并 Hook 活跃的热点网络接口（`ap0`、`softap0`、`swlan0`、`wlan1` 等），解决不同芯片驱动命名的兼容性痛点。
-- **🌍 阿拉伯语完整本地化与 RTL 镜像适配**：
-  - 完整阿拉伯语支持（`values-ar/strings.xml`）。
-  - 全局 RTL 镜像布局跟随系统语言自动切换。
-  - MAC 地址输入框、展示标签及十六进制文本强制保持 LTR（从左至右），防止双向文本乱序。
-  - 设置页面提供三语快速单选切换：**English / 中文 / العربية**。
-- **🎨 现代三页面 Material 3 UI 架构**：
-  - **主页**：模块状态卡片、即时生效开关、MAC 地址卡片（系统出厂 MAC / 当前实际 MAC / 自定义输入框 / 随机生成 / 应用按钮）与动态状态展示。
-  - **设置**：语言行内单选、强制启用 MAC 随机化开关、AP MAC 覆写开关。
-  - **关于**：应用信息、版本号自动读取、项目链接、来源致谢与当前维护者信息。
-  - 基于 `ViewPager2` 实现的平滑手势滑动与底部导航栏双向联动。
-- **🏭 真实出厂 MAC 读取**：
-  通过反射底层 `WifiVendorHal.getStaFactoryMacAddress` / `getFactoryMacAddress` 直接获取硬件真实 MAC，并通过 `YukiHookDataChannel` 跨进程即时回传模块界面缓存展示。
+- Android 12+（已测试至 Android 16 QPR2）
+- 已 Root 设备，并安装支持 **libxposed Modern Xposed API（API ≥ 101）** 的 **LSPosed** 框架（自 v0.2.0 起，本模块不再使用 legacy XposedBridge 接口）
 
----
+## 实现原理
 
-## 兼容性说明
+本项目基于 **libxposed Modern Xposed API（API 101）** 实现（v0.2.0 起全面迁移，替代旧版 YukiHookAPI / XposedBridge 方案）。模块入口 `MacEditorModule` 继承 `io.github.libxposed.api.XposedModule`，在 `META-INF/xposed/java_init.list` 中声明；`module.prop` 声明 `minApiVersion=101` / `targetApiVersion=101`，作用域 `scope.list` = `system`（system_server）。
 
-- **Android 系统版本**：Android 10、11、12、12L、13、14、15 及 Android 16（`minSdk = 29`，`targetSdk = 37`）。
-- **运行环境**：已 Root 并安装 **LSPosed**（Zygisk / Riru）或现代兼容器件。
-- **推荐作用域**：系统框架（`android` / `system`）及 系统设置（`com.android.settings`）。
+在较新 Android 版本中，Wi-Fi 子系统（通过 `WifiNative`）支持按网络或按连接随机化 MAC 地址。本模块钩住系统服务的以下方法，在随机化启用时手动指定 MAC：
 
----
+- `WifiNative.setStaMacAddress()` / `WifiVendorHal.setStaMacAddress()` – 用于 Wi-Fi 客户端模式
+- `WifiNative.setApMacAddress()` / `WifiVendorHal.setApMacAddress()` – 用于 Wi-Fi 接入点（热点）模式
 
-## 安装与使用说明
+同时，模块会强制系统认为 MAC 随机化受支持，通过在 **system_server 中 Hook `Resources.getBoolean(int)`**，按资源名拦截以下系统 bool 并返回 true：
+- `config_wifi_connected_mac_randomization_supported`
+- `config_wifi_p2p_mac_randomization_supported`
+- `config_wifi_ap_mac_randomization_supported`
 
-1. 在 LSPosed 中启用本模块，勾选作用域 **系统框架（System Framework）** 与 **设置（Settings）**。
-2. **重启手机**（首次安装必须重启以加载 System Server Hook）。
-3. 打开 **MAC Editor** 应用：
-   - 输入您期望的 MAC 地址（例如 `02:00:00:00:00:01`）或点击 **“生成随机 MAC”**。
-   - 点击 **“应用 MAC 地址”**（或直接开启 **“覆写随机 MAC”** 开关即可全自动即时应用）。
-   - 在系统的 Wi-Fi 连接详情中，确保隐私设置选择了 **“使用随机 MAC”**。
-   - 如需在开启移动热点时同样替换 MAC，请进入设置页面开启 **“覆写 AP MAC 地址”**。
+这对于硬件驱动支持随机化、但厂商未在软件中开启的设备尤其有用。此方式为普通方法 Hook，兼容 LSPosed 等不支持 XResources 资源替换的框架，且开关切换**即时生效**（无需重启）。
 
----
+### 跨进程偏好设置（Remote Preferences）
 
-## 架构与核心实现
+模块应用与 system_server 之间通过 **Remote Preferences**（Xposed 框架数据库）共享偏好数据（现代 API 替代旧 XSharedPreferences 方案）：
+- 模块应用内：通过 `XposedService.getRemotePreferences()` 可读可写（框架在模块激活时向 App 推送服务）；
+- system_server（宿主进程）内：Hook 侧通过 `XposedModule.getRemotePreferences()` 只读同一份数据，并注册变更监听。
 
-### YukiHookAPI 1.3.2 现代化重构
+因此应用里设置的 MAC、开关会**实时**作用于 Hook 逻辑（无需重启）；本地 `SharedPreferences` 仅作为未激活时的缓存。
 
-模块入口采用 `@InjectYukiHookWithXposed` 注解，由 KSP 编译器（`ksp-xposed`）自动生成 `assets/xposed_init` 和激活状态检测类，免去繁琐手工配置。
+### 激活状态检测（XposedService）
 
-### 弹性的 System Server Hook 体系
+应用内通过 `App.isModuleActive()`（模块 App 是否收到框架推送的 `XposedService`）判断模块是否已在 LSPosed 中激活——现代 API 不再向模块自身进程注入 Hook，收到服务即表示模块处于激活环境，重启后进入应用**立即显示正确状态**。
 
-- **多层级 ClassLoader 发现机制**：覆盖 APEX `service-wifi.jar`、`SystemServiceManager.loadClassFromLoader`、动态 `ServiceManager` 注入与各大厂商特定的 HAL 类。
-- **资源 Hook（Resources.getBoolean）**：通过 Hook `Resources.getBoolean(int)`，动态强制开启以下底层布尔值：
-  - `config_wifi_connected_mac_randomization_supported`
-  - `config_wifi_p2p_mac_randomization_supported`
-  - `config_wifi_ap_mac_randomization_supported`
-- **低延迟 IPC 跨进程通信**：基于 `YukiHookPrefsBridge` 与注册了 `RECEIVER_EXPORTED` 的动态广播实现模块界面与 `system_server` 的实时通信。
+### 出厂 MAC 获取（系统 MAC 显示）
 
----
+模块反射 `WifiVendorHal.getStaFactoryMacAddress(iface)`（ColorOS/OPPO 方法名；AOSP 标准为 `getFactoryMacAddress`，已做多候选兼容）获取**硬件出厂 MAC**，不受 MAC 随机化与模块替换影响。应用打开界面时发送 `ACTION_QUERY_MAC` 广播，system_server 侧回发 `ACTION_MAC_DETECTED` 并缓存显示（无需等待 WiFi 广播）。
 
-## 项目维护者
+### 可靠的“应用 MAC”执行
 
-- **维护与功能增强**：[Rillwyn](https://github.com/Rillwyn) 与 [Eng. Amr Eldeeb](https://github.com/engamreldeeb)
-- **原项目开源作者**：[jqssun/android-mac-editor](https://github.com/jqssun/android-mac-editor)
-- **最初思路与原型**：[David Berdik](https://f-droid.org/repo/com.berdik.macsposed_6_src.tar.gz)
+- 模块 Hook 了 `WifiNative` 的**全部构造器**：系统一旦创建实例即被缓存；
+- “应用 MAC 地址”点击时**广播直接携带目标 MAC**（不依赖跨进程 prefs 读取时序），`WifiNative` 实例未就绪时自动延迟重试 —— 重启后**第一次点击即可生效**；
+- 状态卡片副标题会**动态显示当前实际使用的 MAC**（自定义 MAC 与系统 MAC 分行展示）。
 
----
+### AP MAC 覆写开关说明
 
-## 开源许可证
+部分设备在修改热点 MAC 地址后无法正常启动热点（日志中会出现 `Could not set interface MAC address for wlan2` 错误）。为避免此问题，模块在 UI 中提供了 **“覆写 AP MAC 地址”** 开关（默认关闭）。当开关关闭时，模块不会拦截 `setApMacAddress` 调用，系统将使用默认随机 MAC 启动热点。
 
-本项目基于 [GNU General Public License v3.0](LICENSE) 协议开源。所有原始版权声明均予保留。
+如果您需要为热点也使用自定义 MAC，只需打开此开关即可。
+
+## 使用方法
+
+1. 安装模块，并在 LSPosed 中激活（作用域：**系统框架**）。
+2. 重启设备。
+3. 打开 **MAC Editor** 应用。
+4. 如需替换随机 MAC，开启 **“覆写随机 MAC”**。
+5. 输入有效的 MAC 地址（例如 `02:00:00:00:00:01`），或点击 **“生成随机 MAC”**。
+6. 点击 **“应用 MAC 地址”**。
+7. 对于 Wi‑Fi 连接，请确保在网络的“隐私”设置中选中 **“使用随机 MAC”**。
+8. 如需为热点使用自定义 MAC，请开启 **“覆写 AP MAC 地址”**（如果热点无法启动，建议保持关闭）。
+9. 重新连接 Wi‑Fi 或重启热点以应用更改。
+
+## 语言切换
+
+应用支持英文和中文。切换方法：
+- 打开**设置**页面（底部导航）。
+- 点击**语言**下的 **English** 或 **中文**。
+- 界面会立即刷新，并回到您之前所在的页面。
+
+## 高通设备注意事项
+
+某些高通芯片组的硬件支持可通过查看以下文件确认：
+- `/vendor/etc/wifi/kiwi_v2/WCNSS_qcom_cfg.ini`
+- `/vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini`
+
+对于不支持 MAC 随机化的老款高通设备，建议直接修改 `wlan_mac.bin` 或 `/sys/wifi/mac_addr`，而不是使用本模块。
+
+## 致谢
+
+本项目是 [MAC Editor](https://github.com/jqssun/android-mac-editor) 原项目（作者 [jqssun](https://github.com/jqssun)）的修改版。  
+最初的系统服务钩子实现由 [David Berdik](https://f-droid.org/repo/com.berdik.macsposed_6_src.tar.gz) 提供。  
+感谢原作者的出色工作。
+
+## AI 辅助开发
+
+本项目使用 AI 辅助开发。
+
+## 许可证
+
+本项目基于 [GNU Affero General Public License v3.0](LICENSE) 开源（fork 自 [MAC Editor](https://github.com/jqssun/android-mac-editor)）。所有原始版权声明均已保留。
