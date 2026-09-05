@@ -27,7 +27,7 @@ v0.0.10 使用 **YukiHookAPI 1.3.2 的真实 API** 完全重写，上述问题�
 | `com.google.devtools.ksp` | 2.2.10-2.0.2 | Kotlin Symbol Processing |
 | `de.robv.android.xposed:api`（本地 `libs/api-82.jar`） | 82 | XposedBridge 编译期 API（`compileOnly`，运行时由 LSPosed 提供） |
 | AGP / Kotlin | 8.13.2 / 2.2.10 | 构建工具链 |
-| compileSdk / minSdk / targetSdk | 37 / 29 / 36 | SDK 版本（YukiHookAPI 1.3.2 依赖要求 compileSdk ≥ 37） |
+| compileSdk / minSdk / targetSdk | 37 / 29 / 37 | SDK 版本（YukiHookAPI 1.3.2 依赖要求 compileSdk ≥ 37） |
 
 > `de.robv.android.xposed:api:82` 不在 Maven Central（原托管于已归档的 JCenter），因此以本地 jar 形式放入 `app/libs/`。
 
@@ -180,7 +180,7 @@ dataChannel("android").with {
 ## 6. 构建方式
 
 ```bash
-# 依赖：JDK 21、Android SDK（platform 37、build-tools 36.0.0）
+# 依赖：JDK 21、Android SDK（platform 37、build-tools 37.0.0）
 # local.properties 需指向本机 SDK：sdk.dir=...
 ./gradlew :app:assembleDebug        # 调试包
 ./gradlew :app:assembleRelease      # 发布包（需签名配置）

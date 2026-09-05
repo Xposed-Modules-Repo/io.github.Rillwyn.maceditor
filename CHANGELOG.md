@@ -6,6 +6,32 @@ All changes are made under the terms of the original license (GPL-3.0), and all 
 
 ---
 
+## [0.2.0] - 2026-09-03
+
+### Added
+- **Universal Multi-Vendor Compatibility (Android 10 - Android 16)**:
+  - Added comprehensive multi-vendor support for Google Pixel, Samsung (One UI), Xiaomi / Redmi (MIUI / HyperOS), Oppo / OnePlus / Realme (ColorOS / OxygenOS), Vivo / iQOO (OriginOS / Funtouch OS), Honor / Huawei (MagicOS / EMUI), Motorola, Sony, Asus, Nothing, Transsion (Infinix / Tecno), HTC, and ZTE.
+  - Multi-tiered Wi-Fi service discovery covering APEX `service-wifi.jar` classloader, `SystemServiceManager.loadClassFromLoader`, `ServiceManager.addService("wifi")`, dynamic binder reflection, and multi-vendor HAL/native class resolution (`WifiNative`, `WifiVendorHal`, `SemWifiNative`, `SemWifiVendorHal`, `MiuiWifiNative`, `MtkWifiNative`, `HwWifiNative`).
+  - Dynamic AP interface detection (`ap*`, `softap*`, `swlan*`, `wlan1`, etc.) via network interface scanning and dynamic hooks, ensuring AP MAC address changes apply seamlessly across varied chipset drivers.
+- **Zero-Click Instant Apply**:
+  - Toggling the "Override randomized MAC" or "Override AP MAC address" switches in the UI now immediately applies the MAC changes to the Wi-Fi/AP HAL and active network interfaces in real time via IPC broadcasts, eliminating the need to manually tap "Apply MAC Address" or toggle Wi-Fi / hotspot off and on.
+  - Immediate visual feedback (Snackbars) indicating instant application and active status.
+- **Arabic Language & Full RTL (Right-to-Left) Layout Support**:
+  - Full Arabic localization (`values-ar/strings.xml`) for all UI screens, dialogs, and messages.
+  - Comprehensive Right-to-Left (RTL) layout mirroring (`android:supportsRtl="true"`, dynamic locale layout direction).
+  - Enforced Left-to-Right (LTR) text direction for MAC address input fields, display chips, and hex values to preserve hexadecimal formatting integrity.
+  - Three-way inline language selector in the Settings page: English / 中文 / العربية.
+- **Maintenance & Authorship**:
+  - Maintained and developed collaboratively by **Rillwyn** and **Eng. Amr Eldeeb**.
+
+### Changed
+- Target SDK updated to Android 16 (`targetSdk = 37`, `compileSdk = 37`), maintaining compatibility down to Android 10 (`minSdk = 29`).
+- Replaced legacy broadcast receiver registration with `androidx.core.content.ContextCompat.registerReceiver` using explicit `RECEIVER_EXPORTED` flags, satisfying Android 14+ / 16 requirements and resolving lint warnings.
+- Updated Xposed scope (`scope.list` & `arrays.xml`) to include `com.android.settings` alongside `system` framework for complete system settings integration.
+- Version bumped to `0.2.0` (`versionCode` 11 → 12).
+
+---
+
 ## [0.1.0] - 2026-08-26
 
 ### Added

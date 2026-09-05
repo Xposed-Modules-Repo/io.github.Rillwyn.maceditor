@@ -6,6 +6,32 @@
 
 ---
 
+## [0.2.0] - 2026-09-03
+
+### 新增
+- **全厂商广泛兼容（Android 10 至 Android 16）**：
+  - 深度适配主流所有 OEM 厂商：Google Pixel、Samsung（One UI）、Xiaomi / Redmi（MIUI / HyperOS）、Oppo / OnePlus / Realme（ColorOS / OxygenOS）、Vivo / iQOO（OriginOS / Funtouch OS）、Honor / 华为（MagicOS / EMUI）、Motorola、Sony、Asus、Nothing、传音 Transsion（Infinix / Tecno）、HTC 与 ZTE。
+  - 多重 ClassLoader 发现机制：覆盖 APEX `service-wifi.jar`、`SystemServiceManager.loadClassFromLoader`、`ServiceManager.addService("wifi")`、动态 Binder 反射及多厂商 Native/HAL 类兼容（`WifiNative`、`WifiVendorHal`、`SemWifiNative`、`SemWifiVendorHal`、`MiuiWifiNative`、`MtkWifiNative`、`HwWifiNative`）。
+  - 动态 AP 接口感知（`ap*`、`softap*`、`swlan*`、`wlan1` 等）：结合网络接口扫描与底层 Hook，确保各类芯片与热点驱动下 MAC 均能平滑修改。
+- **零点击即时生效（Zero-Click Instant Apply）**：
+  - 在界面中切换「覆写随机 MAC」或「覆写 AP MAC 地址」开关时，立即通过 IPC 广播更新底层 Wi-Fi/AP HAL 与活跃接口，无需再手动点击“应用 MAC 地址”，无需反复开关 Wi-Fi 或热点。
+  - 界面提供即时反馈提示（Snackbar）与动态状态卡片联动。
+- **阿拉伯语完整本地化与 RTL（从右至左）界面适配**：
+  - 完整阿拉伯语支持（`values-ar/strings.xml`），覆盖所有屏幕文本、弹窗与提示。
+  - 全局 RTL 镜像布局支持（`android:supportsRtl="true"`，根据系统/选择语言动态调整布局方向）。
+  - MAC 地址输入框、展示标签及十六进制文本强制保持 LTR（从左至右），防止双向文本乱序。
+  - 设置页面新增三语单选切换：English / 中文 / العربية。
+- **维护者与署名**：
+  - 由 **Rillwyn** 与 **Eng. Amr Eldeeb** 共同维护与开发。
+
+### 变更
+- 目标 SDK 升级至 Android 16（`targetSdk = 37`，`compileSdk = 37`），最低支持版本保持为 Android 10（`minSdk = 29`）。
+- 广播接收器注册更新为 `androidx.core.content.ContextCompat.registerReceiver` 并显式指定 `RECEIVER_EXPORTED`，满足 Android 14+ / 16 安全规范并通过 Lint 严格检查。
+- Xposed 作用域（`scope.list` 与 `arrays.xml`）补充 `com.android.settings`，实现更全面的系统级适配。
+- 版本号升至 `0.2.0`（`versionCode` 11 → 12）。
+
+---
+
 ## [0.1.0] - 2026-08-26
 
 ### 新增

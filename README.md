@@ -1,4 +1,6 @@
-# MAC Editor for Android (Fork)
+# MAC Editor for Android
+
+[English](README.md) | [中文](README_CN.md) | [العربية](README_AR.md)
 
 [![Stars](https://img.shields.io/github/stars/Xposed-Modules-Repo/io.github.Rillwyn.maceditor)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/stargazers)
 [![LSPosed](https://img.shields.io/github/downloads/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/total?label=LSPosed&logo=Android&style=flat&labelColor=F48FB1&logoColor=ffffff)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/releases)
@@ -7,109 +9,95 @@
 [![build](https://img.shields.io/github/actions/workflow/status/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/apk.yml)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/actions/workflows/apk.yml)
 [![license](https://img.shields.io/github/license/Xposed-Modules-Repo/io.github.Rillwyn.maceditor?color=green)](https://github.com/Xposed-Modules-Repo/io.github.Rillwyn.maceditor/blob/master/LICENSE)
 
-> **Note**: This is a modified fork of the original [MAC Editor](https://github.com/jqssun/android-mac-editor) by [jqssun](https://github.com/jqssun). All credits go to the original author. This version adds several enhancements (see below).
+> **Note**: This is an enhanced fork of the original [MAC Editor](https://github.com/jqssun/android-mac-editor) by [jqssun](https://github.com/jqssun), actively maintained and expanded by **Rillwyn** and **Eng. Amr Eldeeb**. All original copyrights and credits are preserved under the GPL-3.0 license.
 
-**MAC Editor** is a free and open-source Xposed module that gives you granular control over the Wi-Fi MAC address on Android devices. It supports manual MAC override and enables native MAC randomization support exposed by Android on supported hardware regardless of the OEM's implementation.
+**MAC Editor** is a modern, high-performance Xposed module built with **YukiHookAPI 1.3.2** that gives you granular, reliable control over Wi-Fi and Mobile Hotspot (AP) MAC addresses across Android devices and OEM skins.
 
 You can use it to:
-- Customize MAC behavior for privacy.
-- Override the randomized MAC with a fixed value.
-- Force-enable MAC randomization on devices where the vendor disabled it.
-- **Optionally control whether the mobile hotspot (AP) interface uses the custom MAC** – disable this if your device fails to start hotspot when MAC is overridden.
 
-## Features
+- Customize MAC address behavior for privacy and testing.
+- Override randomized MAC addresses with custom or generated unicast MACs.
+- Force-enable hardware-level MAC randomization on devices where vendors locked it in software.
+- **Instant Zero-Click Apply**: Toggling switches in the UI automatically applies MAC changes in real time.
+- Independently control client Wi-Fi and Access Point (Hotspot) MAC address overrides.
 
-- **Manual MAC override** – set any valid unicast MAC address (first octet even).
-- **Force MAC randomization** – enable hidden randomization support for standard Wi-Fi, Wi‑Fi Direct, and mobile hotspot.
-- **Per‑network or per‑connection control** – works when “Use randomized MAC” is selected in Wi‑Fi network details.
-- **AP MAC override toggle** – independently enable/disable MAC replacement for the hotspot interface (default: **off**). Helps devices where changing AP MAC breaks hotspot functionality.
-- **Multi‑language UI** – supports English and Chinese, switchable from the **Settings** page.
-- **Three‑page UI (since v0.1.0)** – **Home** (status card, MAC override switch, MAC address card), **Settings** (language, force randomization, AP override), and **About** (project links, maintainer, version). Switch by bottom navigation tabs or swiping left/right.
+---
+
+## Key Features
+
+- **⚡ Zero-Click Instant Apply**:
+  Toggling the **"Override randomized MAC"** or **"Override AP MAC address"** switches immediately synchronizes changes with the Wi-Fi/AP HAL and active network interfaces via real-time IPC broadcasts — no manual button tap or hotspot reset needed!
+- **🌐 Universal Multi-Vendor Compatibility (Android 10 – Android 16)**:
+  Thoroughly engineered to support all major OEM skins:
+  - **Google Pixel** (AOSP / Pixel UI)
+  - **Samsung** (One UI — `SemWifiNative` / `SemWifiVendorHal`)
+  - **Xiaomi / Redmi / POCO** (MIUI / HyperOS — `MiuiWifiNative`)
+  - **Oppo / OnePlus / Realme** (ColorOS / OxygenOS / Realme UI)
+  - **Vivo / iQOO** (OriginOS / Funtouch OS)
+  - **Honor / Huawei** (MagicOS / EMUI — `HwWifiNative`)
+  - **Motorola, Sony, Asus, Nothing, Transsion (Infinix / Tecno), HTC, ZTE**
+- **🔍 Dynamic AP Interface Detection**:
+  Dynamically scans and hooks active mobile hotspot interfaces (`ap0`, `softap0`, `swlan0`, `wlan1`, etc.), ensuring full compatibility regardless of chipset driver conventions.
+- **🌍 Full Arabic Localization & RTL Layout Support**:
+  - Complete Arabic translation (`values-ar/strings.xml`).
+  - Native Right-to-Left (RTL) layout mirroring.
+  - Enforced Left-to-Right (LTR) text direction for MAC address input fields, display chips, and hexadecimal addresses.
+  - 3-way quick language switcher in Settings: **English / 中文 / العربية**.
+- **🎨 Modern Three-Page Material 3 UI**:
+  - **Home**: Module status card, instant override switch, MAC address card (system MAC / current active MAC / custom MAC input / generator / apply button), and live dynamic status info.
+  - **Settings**: Inline language selector, force MAC randomization toggle, and hotspot (AP) MAC override toggle.
+  - **About**: App details, version info, repository links, source credits, and maintainer information.
+  - Swiping gestures and bottom navigation bar integration via `ViewPager2`.
+- **🏭 Real Factory MAC Detection**:
+  Directly queries the physical Wi-Fi hardware chip via OEM reflection (`WifiVendorHal.getStaFactoryMacAddress` / `getFactoryMacAddress`) to display the genuine factory MAC, cached seamlessly via `YukiHookDataChannel`.
+
+---
 
 ## Compatibility
 
-- Android 12+ (tested up to Android 16 QPR2)
-- Rooted devices with **LSPosed** framework installed
+- **Android Versions**: Android 10, 11, 12, 12L, 13, 14, 15, and Android 16 (`minSdk = 29`, `targetSdk = 37`).
+- **Frameworks**: Rooted devices running **LSPosed** (Zygisk / Riru) or compatible modern Xposed frameworks.
+- **Scopes**: System Framework (`android` / `system`) and Settings (`com.android.settings`).
 
-## Implementation Details
+---
 
-This module is built on **YukiHookAPI 1.3.2** (fully refactored since v0.0.10). The entry uses the `@InjectYukiHookWithXposed` annotation, and the KSP processor auto-generates the Xposed entry assets (`assets/xposed_init`) and the module-status class.
-On modern Android, the Wi-Fi subsystem (via `WifiNative`) can randomize MAC addresses per network or per connection. This module hooks the following system server methods to allow manual MAC assignment when randomization is enabled:
+## Installation & Usage
 
-- `WifiNative.setStaMacAddress()` / `WifiVendorHal.setStaMacAddress()` – for station (client) Wi‑Fi.
-- `WifiNative.setApMacAddress()` / `WifiVendorHal.setApMacAddress()` – for access point (hotspot) mode.
+1. Install the APK and open your Xposed manager (**LSPosed**).
+2. Enable the module and verify that **System Framework** and **Settings** are checked in the scope list.
+3. **Reboot your device** (required upon first installation).
+4. Open the **MAC Editor** app:
+   - To customize your MAC, enter a valid address (e.g., `02:00:00:00:00:01`) or tap **Generate Random MAC**.
+   - Tap **Apply MAC Address** (or simply toggle the **Override randomized MAC** switch for instant zero-click application).
+   - In your Wi-Fi network settings, set Privacy to **"Use randomized MAC"**.
+   - To customize hotspot MAC, toggle **"Override AP MAC address"** in Settings.
 
-The module also forces the system to believe that MAC randomization is supported by hooking **`Resources.getBoolean(int)` in `system_server`** and returning true for the following resource names:
-- `config_wifi_connected_mac_randomization_supported`
-- `config_wifi_p2p_mac_randomization_supported`
-- `config_wifi_ap_mac_randomization_supported`
+---
 
-This is useful on devices where the hardware and chipset drivers do support MAC randomization, but the vendor did not enable it in software. Being a plain method hook, it works on frameworks such as LSPosed that do not support XResources replacement, and the toggle takes effect **immediately** (no reboot needed).
+## Architecture & Implementation
 
-### Cross-process Preferences (YukiHookPrefsBridge)
+### YukiHookAPI 1.3.2 Architecture
 
-The module app and `system_server` share the same preference data through YukiHookAPI's `YukiHookPrefsBridge`:
-- Inside the module app: `context.prefs()` is readable and writable.
-- Inside `system_server` (host process): read-only via `XSharedPreferences` on the same file.
+The module uses `@InjectYukiHookWithXposed` with the modern KSP compiler (`ksp-xposed`), automatically producing `assets/xposed_init` and module status verification components.
 
-So the MAC address and switches you set in the app take effect in the hook logic **in real time**, without a custom broadcast bridge.
+### Resilient System Server Hooks
 
-### Activation State Detection (YukiHookAPI.Status)
+- **Multi-tiered Wi-Fi service discovery**: Resolves Wi-Fi classes through APEX `service-wifi.jar` classloader, `SystemServiceManager.loadClassFromLoader`, dynamic `ServiceManager` registration hooks, and vendor-specific HAL hooks.
+- **Resource Hooking**: Hooks `Resources.getBoolean(int)` to force-enable:
+  - `config_wifi_connected_mac_randomization_supported`
+  - `config_wifi_p2p_mac_randomization_supported`
+  - `config_wifi_ap_mac_randomization_supported`
+- **Zero-Latency IPC**: Communicates state between the user application and `system_server` via `YukiHookPrefsBridge` and targeted dynamic broadcasts with `ContextCompat.RECEIVER_EXPORTED`.
 
-The app determines whether the module is activated in LSPosed via `YukiHookAPI.Status.isModuleActive`. LSPosed injects the real activation state into the module's own process, so the app shows the correct status **immediately after reboot** — no more transient-signal based detection.
+---
 
-### Factory MAC Retrieval ("System MAC")
+## Project Maintainers
 
-The module reflects `WifiVendorHal.getStaFactoryMacAddress(iface)` (ColorOS/OPPO method name; the AOSP standard `getFactoryMacAddress` is also tried) to read the **hardware factory MAC**, which is not affected by MAC randomization or the module's replacement. On app process start it actively pulls the value from `system_server` via **YukiHookAPI's `YukiHookDataChannel`** and caches it locally, so the "System MAC" is shown **immediately when the UI opens** (no need to wait for a Wi-Fi broadcast).
+- **Maintainers**: [Rillwyn](https://github.com/Rillwyn) & [Eng. Amr Eldeeb](https://github.com/engamreldeeb)
+- **Original Project**: [jqssun/android-mac-editor](https://github.com/jqssun/android-mac-editor)
+- **Initial Concept**: [David Berdik](https://f-droid.org/repo/com.berdik.macsposed_6_src.tar.gz)
 
-### Reliable "Apply MAC Address"
-
-- The module hooks **every constructor** of `WifiNative`, so the instance is cached as soon as the system creates it.
-- Tapping "Apply MAC Address" sends a broadcast that **carries the target MAC directly** (no longer dependent on cross-process prefs timing); if the `WifiNative` instance is not ready yet, it automatically retries with a delay — so **the first tap after reboot works immediately**.
-- The status-card subtitle **dynamically shows the MAC actually in use** (custom MAC and system MAC on separate lines).
-
-### AP MAC Override Switch
-
-Some devices fail to start the mobile hotspot when the MAC address is modified (error logs show `Could not set interface MAC address for wlan2`). To avoid this, the module provides a dedicated switch in the UI to **disable MAC override for AP mode** (default: off). When this switch is **off**, the module will not intercept calls to `setApMacAddress`, letting the system use the default random MAC for the hotspot.
-
-If you need a custom MAC for hotspot as well, simply turn this switch **on**.
-
-## Usage
-
-1. Install the module and activate it in LSPosed (scope: **System Framework**).
-2. Reboot your device.
-3. Open the **MAC Editor** app.
-4. Enable **“Override randomized MAC”** if you want to replace the randomized MAC with a custom one.
-5. Enter a valid MAC address (e.g., `02:00:00:00:00:01`) or tap **“Generate Random MAC”**.
-6. Tap **“Apply MAC Address”**.
-7. For Wi‑Fi connections, ensure **“Use randomized MAC”** is selected in the network’s “Privacy” setting.
-8. To use the custom MAC for hotspot, enable **“Override AP MAC address”** (recommended to keep it off if hotspot fails to start).
-9. Reconnect Wi‑Fi or restart hotspot to apply changes.
-
-## Language Switching
-
-The app supports English and Chinese. To switch:
-- Open the **Settings** page (bottom navigation).
-- Tap **English** or **中文** under **Language**.
-- The UI refreshes immediately and returns to the page you were on.
-
-## Notes for Qualcomm Devices
-
-Hardware support on certain chipsets can be checked by looking at:
-- `/vendor/etc/wifi/kiwi_v2/WCNSS_qcom_cfg.ini`
-- `/vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini`
-
-For legacy Qualcomm devices without MAC randomization support, consider editing `wlan_mac.bin` or `/sys/wifi/mac_addr` directly instead of using this module.
-
-## Acknowledgements
-
-This project is a fork of the original [MAC Editor](https://github.com/jqssun/android-mac-editor) by [jqssun](https://github.com/jqssun).  
-The initial open‑source system server hook implementation was provided by [David Berdik](https://f-droid.org/repo/com.berdik.macsposed_6_src.tar.gz).  
-We thank the original authors for their great work.
-
-## AI Assistance
-
-This project was developed with the assistance of AI tools.
+---
 
 ## License
 
